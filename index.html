@@ -249,29 +249,29 @@
     <div class="sub" id="headerSub"></div>
   </header>
   <main id="main"></main>
-  <nav class="tabbar">
-    <button data-tab="shelf" class="active">
-      <svg viewBox="0 0 24 24"><path d="M4 4v16M20 4v16M4 8h16M8 4v4M14 4v4"/></svg>
-      Étagère
-    </button>
-    <button data-tab="collection">
-      <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg>
-      Collection
-    </button>
-    <button data-tab="ajouter">
-      <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke-linecap="round"/></svg>
-      Ajouter
-    </button>
-    <button data-tab="parabd">
-      <svg viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>
-      Para-BD
-    </button>
-    <button data-tab="stats">
-      <svg viewBox="0 0 24 24"><path d="M5 19V10M12 19V5M19 19v-7"/></svg>
-      Stats
-    </button>
-  </nav>
 </div>
+<nav class="tabbar">
+  <button data-tab="shelf" class="active">
+    <svg viewBox="0 0 24 24"><path d="M4 4v16M20 4v16M4 8h16M8 4v4M14 4v4"/></svg>
+    Étagère
+  </button>
+  <button data-tab="collection">
+    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg>
+    Collection
+  </button>
+  <button data-tab="ajouter">
+    <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke-linecap="round"/></svg>
+    Ajouter
+  </button>
+  <button data-tab="parabd">
+    <svg viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>
+    Para-BD
+  </button>
+  <button data-tab="stats">
+    <svg viewBox="0 0 24 24"><path d="M5 19V10M12 19V5M19 19v-7"/></svg>
+    Stats
+  </button>
+</nav>
 <div class="sheet-backdrop" id="backdrop"></div>
 <div class="sheet" id="sheet"></div>
 <div class="lightbox-overlay" id="lightboxOverlay"></div>
@@ -483,14 +483,30 @@ let deletedAt = loadDeletedAt();   // { num: "date ISO de suppression" }
 /* ================================================================
    PARA-BD — objets dérivés (fèves, figurines, etc.), indépendants des BD
    ================================================================ */
+// Absorbe l'ancien format (objet = catégorie, pas de champ dédié ; "date" au lieu d'"année")
+function normalizeParaItem(p){
+  return {
+    id: p.id,
+    serie: p.serie,
+    categorie: p.categorie ?? p.objet ?? "Non renseigné",
+    objet: p.categorie ? (p.objet ?? null) : null,
+    annee: p.annee ?? p.date ?? null,
+    etat: p.etat ?? null,
+    editeur: p.editeur ?? null,
+    cout: p.cout ?? null,
+    commentaire: p.commentaire ?? "",
+    deletedAt: p.deletedAt ?? undefined,
+    modifiedAt: p.modifiedAt ?? undefined
+  };
+}
 const LS_PARABD = "bdcollection_parabd_v1";
-function loadParabd(){ try{ return JSON.parse(localStorage.getItem(LS_PARABD) || "[]"); }catch(e){ return []; } }
+function loadParabd(){ try{ return (JSON.parse(localStorage.getItem(LS_PARABD)) || []).map(normalizeParaItem); }catch(e){ return []; } }
 function saveParabd(){ try{ localStorage.setItem(LS_PARABD, JSON.stringify(parabdItems)); }catch(e){} }
-let parabdItems = loadParabd();    // { id, serie, objet, date, etat, editeur, cout, commentaire }
+let parabdItems = loadParabd();    // { id, serie, categorie, objet, annee, etat, editeur, cout, commentaire }
 function nextParaId(){ return Date.now(); }
 
 const LS_PARABD_TRASH = "bdcollection_parabd_trash_v1";
-function loadParabdTrash(){ try{ return JSON.parse(localStorage.getItem(LS_PARABD_TRASH) || "[]"); }catch(e){ return []; } }
+function loadParabdTrash(){ try{ return (JSON.parse(localStorage.getItem(LS_PARABD_TRASH)) || []).map(normalizeParaItem); }catch(e){ return []; } }
 function saveParabdTrash(){ try{ localStorage.setItem(LS_PARABD_TRASH, JSON.stringify(parabdTrash)); }catch(e){} }
 let parabdTrash = loadParabdTrash();
 
@@ -743,6 +759,20 @@ function editExemplaire(num, fields){
 }
 
 // --- Boîte de dialogue de confirmation générique (suppression, enregistrement...) ---
+function showAlert(message){
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <p class="confirm-msg">${message}</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-primary" id="alertOkBtn">OK</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#alertOkBtn").addEventListener("click", ()=>overlay.remove());
+}
 function showConfirm(message, confirmLabel, onConfirm){
   const overlay = document.createElement("div");
   overlay.className = "confirm-overlay";
@@ -855,8 +885,8 @@ function distinctEditeurs(){ return distinctValues(OWNED.flatMap(a=>a.exemplaire
 // --- Helpers Para-BD ---
 function distinctParaSeries(){ return distinctValues(parabdItems.map(p=>p.serie)).sort((a,b)=>a.localeCompare(b,"fr")); }
 function paraItemsFor(serie){ return parabdItems.filter(p=>p.serie===serie); }
-function distinctParaObjets(serie){ return distinctValues(paraItemsFor(serie).map(p=>p.objet)).sort((a,b)=>a.localeCompare(b,"fr")); }
-function paraItemsForObjet(serie,objet){ return parabdItems.filter(p=>p.serie===serie && p.objet===objet); }
+function distinctParaCategories(serie){ return distinctValues(paraItemsFor(serie).map(p=>p.categorie)).sort((a,b)=>a.localeCompare(b,"fr")); }
+function paraItemsForCategorie(serie,categorie){ return parabdItems.filter(p=>p.serie===serie && p.categorie===categorie); }
 function distinctParaEditeurs(){ return distinctValues(parabdItems.map(p=>p.editeur)); }
 
 // Attache une suggestion accent-insensible à un champ texte, sans passer par un re-rendu complet (le focus/curseur ne bougent pas)
@@ -886,7 +916,7 @@ function attachCombo(inputId, listId, getOptions){
    ÉTAT DE L'INTERFACE
    ================================================================ */
 let state = { tab:"shelf", query:"", filterSerie:null, sort:"num", shelfCovers:false };
-let parabdState = { level:"series", serie:null, objet:null, sort:"add" };
+let parabdState = { level:"series", serie:null, categorie:null, sort:"add" };
 let sheetState = { aid:null, exIndex:0 };
 
 /* ================================================================
@@ -991,6 +1021,22 @@ function renderCollection(){
   if(state.sort==="vente") list.sort((a,b)=>albumTotalVente(b)-albumTotalVente(a));
   if(state.sort==="cote") list.sort((a,b)=>Math.max(...b.exemplaires.map(e=>parseCote(e.cote)||0)) - Math.max(...a.exemplaires.map(e=>parseCote(e.cote)||0)));
   if(state.sort==="eo") list.sort((a,b)=>(albumHasEO(b)?1:0)-(albumHasEO(a)?1:0) || a.exemplaires[0].num-b.exemplaires[0].num);
+  if(state.sort==="tome") list.sort((a,b)=>{
+    const ta = parseInt(a.tome,10), tb = parseInt(b.tome,10);
+    const aNum = !isNaN(ta), bNum = !isNaN(tb);
+    if(aNum && bNum) return ta-tb;
+    if(aNum) return -1;
+    if(bNum) return 1;
+    return a.titre.localeCompare(b.titre,"fr");
+  });
+  if(state.sort==="parution") list.sort((a,b)=>{
+    const yearOf = al => { const y = parseInt((al.exemplaires[0].annee||"").toString(),10); return isNaN(y) ? null : y; };
+    const ya = yearOf(a), yb = yearOf(b);
+    if(ya!==null && yb!==null) return ya-yb;
+    if(ya!==null) return -1;
+    if(yb!==null) return 1;
+    return a.titre.localeCompare(b.titre,"fr");
+  });
 
   const chips = ["Toutes", ...SERIE_COUNTS.map(s=>s.serie)].map(s=>{
     const active = (s==="Toutes" && !state.filterSerie) || s===state.filterSerie;
@@ -1024,7 +1070,7 @@ function renderCollection(){
     `;
   }).join("") || `<div class="empty">Aucun album ne correspond à ta recherche.</div>`;
 
-  const sortOptions = {num:"Numéro", alpha:"Alphabétique", vente:"Valeur", cote:"Côte", eo:"EO d'abord"};
+  const sortOptions = {num:"Numéro", alpha:"Alphabétique", vente:"Valeur", cote:"Côte", eo:"EO d'abord", tome:"Tome", parution:"Ordre de parution"};
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${state.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
 
   return `
@@ -1180,7 +1226,11 @@ function importBackup(file){
 function handleAddSubmit(e){
   e.preventDefault();
   const val = id => document.getElementById(id).value.trim();
-  const serie = val("f_serie") || "Non renseigné", titre = val("f_titre") || "Non renseigné";
+  const serie = val("f_serie"), titre = val("f_titre");
+  if(!serie || !titre){
+    showAlert("Il faut au moins renseigner la série et le titre pour ajouter une BD.");
+    return;
+  }
   const cout = parseFloat(val("f_cout")); const vente = parseFloat(val("f_vente"));
   const row = {
     num: nextUserNum(), serie, titre,
@@ -1261,7 +1311,7 @@ function renderCorbeilleRows(){
     .filter(r=>!q || normalizeText(r.titre).includes(q) || normalizeText(r.serie).includes(q))
     .sort((a,b)=>(b.deletedAt||"").localeCompare(a.deletedAt||""));
   const paraRows = parabdTrash
-    .filter(p=>!q || normalizeText(p.objet).includes(q) || normalizeText(p.serie).includes(q))
+    .filter(p=>!q || normalizeText(p.objet||"").includes(q) || normalizeText(p.categorie||"").includes(q) || normalizeText(p.serie).includes(q))
     .sort((a,b)=>(b.deletedAt||"").localeCompare(a.deletedAt||""));
 
   const bdHtml = bdRows.map(r=>`
@@ -1278,7 +1328,7 @@ function renderCorbeilleRows(){
     <div class="rarity-row">
       <span class="badge" style="background:var(--accent); margin-right:8px;">Para-BD</span>
       <div style="flex:1; padding-right:8px;">
-        <div>${p.objet}${p.serie?" · "+p.serie:""}</div>
+        <div>${(p.objet||p.categorie)}${p.serie?" · "+p.serie:""}</div>
         <div style="font-size:11px; color:var(--ink-soft);">Supprimé le ${formatDateTime(p.deletedAt)}</div>
       </div>
       <button class="link-btn" data-restorepara="${p.id}">Restaurer</button>
@@ -1311,20 +1361,20 @@ function renderParaSeriesList(){
     ${rows}
   `;
 }
-function renderParaObjetsList(){
-  const objets = distinctParaObjets(parabdState.serie);
-  const rows = objets.map(o=>{
-    const n = paraItemsForObjet(parabdState.serie, o).length;
+function renderParaCategoriesList(){
+  const categories = distinctParaCategories(parabdState.serie);
+  const rows = categories.map(c=>{
+    const n = paraItemsForCategorie(parabdState.serie, c).length;
     return `
-      <div class="card album-row" data-paraobjet="${o}">
+      <div class="card album-row" data-paracategorie="${c}">
         <div class="album-main">
-          <div class="album-title">${o}</div>
+          <div class="album-title">${c}</div>
           <div class="album-sub">${n} exemplaire${n>1?"s":""}</div>
         </div>
         <div class="chev">›</div>
       </div>
     `;
-  }).join("") || `<div class="empty">Aucun objet pour cette série.</div>`;
+  }).join("") || `<div class="empty">Aucune catégorie pour cette série.</div>`;
 
   return `
     <button class="back-btn" id="paraBackToSeries">‹ Séries</button>
@@ -1333,21 +1383,21 @@ function renderParaObjetsList(){
   `;
 }
 function renderParaItemsList(){
-  let items = paraItemsForObjet(parabdState.serie, parabdState.objet).slice();
+  let items = paraItemsForCategorie(parabdState.serie, parabdState.categorie).slice();
   if(parabdState.sort==="add") items.sort((a,b)=>b.id-a.id);
-  if(parabdState.sort==="date") items.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  if(parabdState.sort==="annee") items.sort((a,b)=>(b.annee||"").localeCompare(a.annee||""));
   if(parabdState.sort==="etat") items.sort((a,b)=>(a.etat||"").localeCompare(b.etat||"","fr"));
 
-  const sortOptions = {add:"Ordre d'ajout", date:"Date", etat:"État"};
+  const sortOptions = {add:"Ordre d'ajout", annee:"Année", etat:"État"};
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${parabdState.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
 
   const rows = items.map(p=>{
-    const sub = [p.date||"Non renseigné", p.etat||"Non renseigné", p.editeur||"Non renseigné"].join(" · ");
+    const sub = [p.annee||"Non renseigné", p.etat||"Non renseigné", p.editeur||"Non renseigné"].join(" · ");
     return `
       <div class="card album-row" data-paraitem="${p.id}">
         <div class="album-main">
-          <div class="album-title">${p.objet}</div>
-          <div class="album-sub">${sub || "—"}${p.commentaire ? " · "+p.commentaire : ""}</div>
+          <div class="album-title">${p.objet || "Non renseigné"}</div>
+          <div class="album-sub">${sub}${p.commentaire ? " · "+p.commentaire : ""}</div>
         </div>
         <div class="val-line mono">${eur(p.cout)}</div>
       </div>
@@ -1355,9 +1405,9 @@ function renderParaItemsList(){
   }).join("") || `<div class="empty">Aucun objet.</div>`;
 
   return `
-    <button class="back-btn" id="paraBackToObjets">‹ ${parabdState.serie}</button>
+    <button class="back-btn" id="paraBackToCategories">‹ ${parabdState.serie}</button>
     <div class="row-between" style="margin:14px 2px 12px;">
-      <p class="section-title" style="margin:0;">${parabdState.objet}</p>
+      <p class="section-title" style="margin:0;">${parabdState.categorie}</p>
       <select class="sort-select" id="paraSortSelect">${sortOpts}</select>
     </div>
     ${rows}
@@ -1365,7 +1415,7 @@ function renderParaItemsList(){
 }
 function renderParabd(){
   const body = parabdState.level==="series" ? renderParaSeriesList()
-    : parabdState.level==="objets" ? renderParaObjetsList()
+    : parabdState.level==="categories" ? renderParaCategoriesList()
     : renderParaItemsList();
   return `
     <button class="btn-primary" id="paraAddBtn" style="margin-bottom:20px;">+ Ajouter un objet</button>
@@ -1389,16 +1439,20 @@ function renderParaAddForm(){
     <form id="paraAddForm">
       <div class="field">
         <label>Série</label>
-        <input id="pf_serie" required placeholder="ex. Astérix" autocomplete="off">
+        <input id="pf_serie" placeholder="ex. Astérix" autocomplete="off">
         <div class="combo-list" id="combo_pf_serie"></div>
       </div>
       <div class="field">
+        <label>Catégorie</label>
+        <input id="pf_categorie" placeholder="ex. Fèves" autocomplete="off">
+        <div class="combo-list" id="combo_pf_categorie"></div>
+      </div>
+      <div class="field">
         <label>Objet</label>
-        <input id="pf_objet" required placeholder="ex. Fèves" autocomplete="off">
-        <div class="combo-list" id="combo_pf_objet"></div>
+        <input id="pf_objet" placeholder="ex. Bonnemine" autocomplete="off">
       </div>
       <div class="field-row">
-        <div class="field"><label>Date</label><input id="pf_date" type="date"></div>
+        <div class="field"><label>Année</label><input id="pf_annee" placeholder="ex. 1996"></div>
         <div class="field"><label>Coût (€)</label><input id="pf_cout" type="number" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="field">
@@ -1436,9 +1490,9 @@ function openParaAdd(){
 }
 function bindParaAddEvents(){
   attachCombo("pf_serie", "combo_pf_serie", ()=>distinctValues([...distinctParaSeries(), ...SERIES]));
-  attachCombo("pf_objet", "combo_pf_objet", ()=>{
+  attachCombo("pf_categorie", "combo_pf_categorie", ()=>{
     const serie = document.getElementById("pf_serie").value;
-    return distinctValues(paraItemsFor(serie).map(p=>p.objet));
+    return distinctValues(paraItemsFor(serie).map(p=>p.categorie));
   });
   attachCombo("pf_editeur", "combo_pf_editeur", distinctParaEditeurs);
   const draftPhotoInput = document.getElementById("paraDraftPhotoInput");
@@ -1468,23 +1522,24 @@ function bindParaAddEvents(){
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
     const val = id => document.getElementById(id).value.trim();
-    const serie = val("pf_serie"), objet = val("pf_objet");
-    if(!serie || !objet){
-      document.getElementById("paraFormMsg").textContent = "Série et objet sont obligatoires.";
+    const serie = val("pf_serie"), categorie = val("pf_categorie");
+    if(!serie || !categorie){
+      showAlert("Il faut au moins renseigner la série et la catégorie pour ajouter un objet.");
       return;
     }
     const cout = parseFloat(val("pf_cout"));
     const id = paraDraftId;
     parabdItems.push({
-      id, serie, objet,
-      date: val("pf_date") || null,
+      id, serie, categorie,
+      objet: val("pf_objet") || null,
+      annee: val("pf_annee") || null,
       etat: val("pf_etat") || null,
       editeur: val("pf_editeur") || null,
       cout: isNaN(cout) ? null : cout,
       commentaire: val("pf_commentaire") || ""
     });
     saveParabd();
-    parabdState = { level:"items", serie, objet, sort:"add" };
+    parabdState = { level:"items", serie, categorie, sort:"add" };
     closeDetail();
     render();
     openParaDetail(id);
@@ -1502,9 +1557,9 @@ function renderParaDetail(){
   return `
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
-    <div class="sheet-eyebrow">${p.serie} · ${p.objet}</div>
-    <div class="sheet-title">${p.objet}</div>
-    <div class="sheet-meta">${(p.date||"Non renseigné")+" · "+(p.editeur||"Non renseigné")}</div>
+    <div class="sheet-eyebrow">${p.serie} · ${p.categorie}</div>
+    <div class="sheet-title">${p.objet || p.categorie}</div>
+    <div class="sheet-meta">${(p.annee||"Non renseigné")+" · "+(p.editeur||"Non renseigné")}</div>
     <span class="badge" style="background:${etatColor(p.etat)}">${p.etat||"Non renseigné"}</span>
     <div class="ledger" style="margin-top:14px; grid-template-columns:1fr;">
       <div><div class="v mono">${eur(p.cout)}</div><div class="l">Coût</div></div>
@@ -1585,7 +1640,7 @@ function renderParaEditForm(){
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
     <div class="sheet-eyebrow">Modifier</div>
-    <div class="sheet-title">${p.objet}</div>
+    <div class="sheet-title">${p.objet || p.categorie}</div>
     <form id="paraEditForm">
       <div class="field">
         <label>Série</label>
@@ -1593,12 +1648,16 @@ function renderParaEditForm(){
         <div class="combo-list" id="combo_pef_serie"></div>
       </div>
       <div class="field">
+        <label>Catégorie</label>
+        <input id="pef_categorie" value="${p.categorie}" autocomplete="off">
+        <div class="combo-list" id="combo_pef_categorie"></div>
+      </div>
+      <div class="field">
         <label>Objet</label>
-        <input id="pef_objet" value="${p.objet}" autocomplete="off">
-        <div class="combo-list" id="combo_pef_objet"></div>
+        <input id="pef_objet" value="${p.objet||""}" autocomplete="off">
       </div>
       <div class="field-row">
-        <div class="field"><label>Date</label><input id="pef_date" type="date" value="${p.date||""}"></div>
+        <div class="field"><label>Année</label><input id="pef_annee" value="${p.annee||""}"></div>
         <div class="field"><label>Coût (€)</label><input id="pef_cout" type="number" step="0.01" value="${p.cout??""}"></div>
       </div>
       <div class="field">
@@ -1626,20 +1685,25 @@ function openParaEditForm(){
 }
 function bindParaEditFormEvents(){
   attachCombo("pef_serie", "combo_pef_serie", ()=>distinctValues([...distinctParaSeries(), ...SERIES]));
-  attachCombo("pef_objet", "combo_pef_objet", ()=>{
+  attachCombo("pef_categorie", "combo_pef_categorie", ()=>{
     const serie = document.getElementById("pef_serie").value;
-    return distinctValues(paraItemsFor(serie).map(x=>x.objet));
+    return distinctValues(paraItemsFor(serie).map(x=>x.categorie));
   });
   attachCombo("pef_editeur", "combo_pef_editeur", distinctParaEditeurs);
   const form = document.getElementById("paraEditForm");
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
     const val = id => document.getElementById(id).value.trim();
+    const serie = val("pef_serie"), categorie = val("pef_categorie");
+    if(!serie || !categorie){
+      showAlert("Il faut au moins renseigner la série et la catégorie.");
+      return;
+    }
     const cout = parseFloat(val("pef_cout"));
     const fields = {
-      serie: val("pef_serie") || "Non renseigné",
-      objet: val("pef_objet") || "Non renseigné",
-      date: val("pef_date") || null,
+      serie, categorie,
+      objet: val("pef_objet") || null,
+      annee: val("pef_annee") || null,
       etat: val("pef_etat") || null,
       editeur: val("pef_editeur") || null,
       cout: isNaN(cout) ? null : cout,
@@ -2033,18 +2097,18 @@ function render(){
   if(importInput) importInput.addEventListener("change", e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); });
 
   document.querySelectorAll("[data-paraserie]").forEach(el=>{
-    el.addEventListener("click", ()=>{ parabdState = { level:"objets", serie:el.dataset.paraserie, objet:null, sort:"add" }; render(); });
+    el.addEventListener("click", ()=>{ parabdState = { level:"categories", serie:el.dataset.paraserie, categorie:null, sort:"add" }; render(); });
   });
-  document.querySelectorAll("[data-paraobjet]").forEach(el=>{
-    el.addEventListener("click", ()=>{ parabdState.level="items"; parabdState.objet=el.dataset.paraobjet; parabdState.sort="add"; render(); });
+  document.querySelectorAll("[data-paracategorie]").forEach(el=>{
+    el.addEventListener("click", ()=>{ parabdState.level="items"; parabdState.categorie=el.dataset.paracategorie; parabdState.sort="add"; render(); });
   });
   document.querySelectorAll("[data-paraitem]").forEach(el=>{
     el.addEventListener("click", ()=>openParaDetail(el.dataset.paraitem));
   });
   const paraBackToSeries = document.getElementById("paraBackToSeries");
-  if(paraBackToSeries) paraBackToSeries.addEventListener("click", ()=>{ parabdState = { level:"series", serie:null, objet:null, sort:"add" }; render(); });
-  const paraBackToObjets = document.getElementById("paraBackToObjets");
-  if(paraBackToObjets) paraBackToObjets.addEventListener("click", ()=>{ parabdState.level="objets"; parabdState.objet=null; render(); });
+  if(paraBackToSeries) paraBackToSeries.addEventListener("click", ()=>{ parabdState = { level:"series", serie:null, categorie:null, sort:"add" }; render(); });
+  const paraBackToCategories = document.getElementById("paraBackToCategories");
+  if(paraBackToCategories) paraBackToCategories.addEventListener("click", ()=>{ parabdState.level="categories"; parabdState.categorie=null; render(); });
   const paraSortSelect = document.getElementById("paraSortSelect");
   if(paraSortSelect) paraSortSelect.addEventListener("change", e=>{ parabdState.sort = e.target.value; render(); });
   const paraAddBtn = document.getElementById("paraAddBtn");
@@ -2100,7 +2164,7 @@ function renderPartialCollection(){
 document.querySelectorAll("nav.tabbar button").forEach(b=>{
   b.addEventListener("click", ()=>{
     state.tab = b.dataset.tab;
-    if(state.tab==="parabd") parabdState = { level:"series", serie:null, objet:null, sort:"add" };
+    if(state.tab==="parabd") parabdState = { level:"series", serie:null, categorie:null, sort:"add" };
     render();
   });
 });
