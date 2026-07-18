@@ -235,9 +235,9 @@
   .photo-strip{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
   .photo-thumb{ position:relative; flex:0 0 auto; width:78px; height:78px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
   .photo-thumb img{ cursor:pointer; }
-  .lightbox-overlay{ position:fixed; inset:0; background:rgba(10,10,12,0.94); z-index:80; display:none; align-items:center; justify-content:center; touch-action:pan-y; }
+  .lightbox-overlay{ position:fixed; inset:0; background:rgba(10,10,12,0.94); z-index:80; display:none; align-items:center; justify-content:center; touch-action:none; overflow:hidden; }
   .lightbox-overlay.open{ display:flex; }
-  .lightbox-img{ max-width:94vw; max-height:78vh; object-fit:contain; user-select:none; -webkit-user-select:none; }
+  .lightbox-img{ max-width:94vw; max-height:78vh; object-fit:contain; user-select:none; -webkit-user-select:none; touch-action:none; }
   .lightbox-close{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 16px); right:16px; background:rgba(255,255,255,0.15); color:#fff; border:none; width:36px; height:36px; border-radius:50%; font-size:18px; }
   .lightbox-counter{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 24px); left:0; right:0; text-align:center; color:rgba(255,255,255,0.75); font-size:13px; }
   .lightbox-dots{ position:absolute; bottom:calc(env(safe-area-inset-bottom,0px) + 22px); left:0; right:0; display:flex; justify-content:center; gap:6px; }
@@ -888,6 +888,11 @@ function openLightbox(photos, startIndex){
   lightboxIndex = startIndex;
   renderLightbox();
 }
+function touchDist(touches){
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
 function renderLightbox(){
   const overlay = document.getElementById("lightboxOverlay");
   const dots = lightboxPhotos.length>1
@@ -896,21 +901,70 @@ function renderLightbox(){
   overlay.innerHTML = `
     <button class="lightbox-close" id="lightboxClose">&times;</button>
     ${lightboxPhotos.length>1 ? `<div class="lightbox-counter">${lightboxIndex+1} / ${lightboxPhotos.length}</div>` : ""}
-    <img class="lightbox-img" src="${lightboxPhotos[lightboxIndex]}">
+    <img class="lightbox-img" id="lightboxImg" src="${lightboxPhotos[lightboxIndex]}">
     ${dots}
   `;
   overlay.classList.add("open");
   document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
-  let startX = null;
-  overlay.ontouchstart = e=>{ startX = e.touches[0].clientX; };
-  overlay.ontouchend = e=>{
-    if(startX===null) return;
-    const diff = e.changedTouches[0].clientX - startX;
-    if(Math.abs(diff) > 40){
-      if(diff < 0 && lightboxIndex < lightboxPhotos.length-1){ lightboxIndex++; renderLightbox(); }
-      else if(diff > 0 && lightboxIndex > 0){ lightboxIndex--; renderLightbox(); }
+
+  const img = document.getElementById("lightboxImg");
+  let scale = 1, tx = 0, ty = 0;
+  let pinchStartDist = null, pinchStartScale = 1;
+  let panStart = null, panStartTX = 0, panStartTY = 0;
+  let swipeStartX = null;
+  let lastTapAt = 0;
+
+  function applyTransform(withTransition){
+    img.style.transition = withTransition ? "transform 0.2s ease" : "none";
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+
+  overlay.ontouchstart = e=>{
+    if(e.touches.length===2){
+      pinchStartDist = touchDist(e.touches);
+      pinchStartScale = scale;
+      swipeStartX = null;
+    } else if(e.touches.length===1){
+      const now = Date.now();
+      if(now - lastTapAt < 300){
+        // double-tap : bascule zoom avant/arrière
+        scale = scale>1 ? 1 : 2.5;
+        tx = 0; ty = 0;
+        applyTransform(true);
+      }
+      lastTapAt = now;
+      if(scale>1){
+        panStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+        panStartTX = tx; panStartTY = ty;
+      } else {
+        swipeStartX = e.touches[0].clientX;
+      }
     }
-    startX = null;
+  };
+  overlay.ontouchmove = e=>{
+    if(e.touches.length===2 && pinchStartDist){
+      e.preventDefault();
+      const dist = touchDist(e.touches);
+      scale = Math.min(4, Math.max(1, pinchStartScale * (dist/pinchStartDist)));
+      applyTransform(false);
+    } else if(e.touches.length===1 && scale>1 && panStart){
+      e.preventDefault();
+      tx = panStartTX + (e.touches[0].clientX - panStart.x);
+      ty = panStartTY + (e.touches[0].clientY - panStart.y);
+      applyTransform(false);
+    }
+  };
+  overlay.ontouchend = e=>{
+    pinchStartDist = null;
+    panStart = null;
+    if(scale<=1 && swipeStartX!==null && e.changedTouches.length){
+      const diff = e.changedTouches[0].clientX - swipeStartX;
+      if(Math.abs(diff) > 40){
+        if(diff < 0 && lightboxIndex < lightboxPhotos.length-1){ lightboxIndex++; renderLightbox(); }
+        else if(diff > 0 && lightboxIndex > 0){ lightboxIndex--; renderLightbox(); }
+      }
+    }
+    swipeStartX = null;
   };
 }
 function closeLightbox(){
@@ -974,7 +1028,7 @@ function photoForEx(ex){
 }
 
 // --- Recherche insensible aux accents/majuscules (utilisée par les suggestions du formulaire "Ajouter") ---
-function normalizeText(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
+function normalizeText(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/['’‘´`]/g,"").toLowerCase().trim(); }
 
 // --- Distance de Levenshtein (nombre minimal de modifications pour passer d'une chaîne à l'autre) ---
 function levenshtein(a, b){
@@ -1847,6 +1901,7 @@ function bindParaDetailEvents(){
       await idbSavePhotosFor(key);
       document.getElementById("sheet").innerHTML = renderParaDetail();
       bindParaDetailEvents();
+      render();
     });
   }
   document.querySelectorAll("[data-delparaphoto]").forEach(el=>{
@@ -1856,6 +1911,7 @@ function bindParaDetailEvents(){
       await idbSavePhotosFor(key);
       document.getElementById("sheet").innerHTML = renderParaDetail();
       bindParaDetailEvents();
+      render();
     });
   });
   {
@@ -2059,6 +2115,7 @@ function bindSheetEvents(){
       await idbSavePhotosFor(ex.key);
       document.getElementById("sheet").innerHTML = renderSheet();
       bindSheetEvents();
+      render();
     });
   }
   document.querySelectorAll("[data-delphoto]").forEach(el=>{
@@ -2070,6 +2127,7 @@ function bindSheetEvents(){
       await idbSavePhotosFor(ex.key);
       document.getElementById("sheet").innerHTML = renderSheet();
       bindSheetEvents();
+      render();
     });
   });
   {
