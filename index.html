@@ -42,6 +42,7 @@
   }
   header.topbar h1{ font-size:19px; margin:0 0 2px; font-weight:600; letter-spacing:-0.01em; }
   header.topbar .sub{ font-size:12.5px; color:var(--ink-soft); }
+  header.topbar.centered h1, header.topbar.centered .sub{ text-align:center; }
   main{ flex:1; padding: 18px 18px calc(90px + var(--safe-bottom)); }
 
   /* ---- cards & shared bits ---- */
@@ -83,10 +84,23 @@
   .vitrine-title{ font-size:14.5px; font-weight:700; }
   .vitrine-meta{ font-size:12px; color:var(--ink-soft); }
   .chev{ color:var(--ink-soft); font-size:16px; }
+  .link-btn{ background:none; border:none; color:var(--accent); font-size:13px; font-weight:600; padding:4px 2px; }
+  .vitrine-remove{ background:none; border:none; color:var(--red-muted,#8a2c22); font-size:12.5px; font-weight:600; padding:6px 4px; }
+  .vitrine-pick{ display:flex; align-items:center; justify-content:space-between; padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .vitrine-pick:last-child{ border-bottom:none; }
+  .ex-pill-row{ display:flex; gap:5px; margin-top:6px; }
+  .ex-pill{ width:24px; height:24px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink-soft); font-size:11.5px; font-weight:600; padding:0; }
+  .ex-pill.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
   /* ---- Search & chips ---- */
-  .search-input{ width:100%; padding:11px 14px; border-radius:11px; border:1px solid var(--line); background:var(--card); font-size:15px; color:var(--ink); margin-bottom:10px; }
+  .search-wrap{ position:relative; margin-bottom:10px; }
+  .search-input{ width:100%; padding:11px 36px 11px 14px; border-radius:11px; border:1px solid var(--line); background:var(--card); font-size:15px; color:var(--ink); margin-bottom:0; }
   select.search-input{ -webkit-appearance:none; appearance:none; }
+  .clear-search{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:20px; height:20px; border-radius:50%; border:none; padding:0;
+    background:var(--line); color:var(--ink-soft); font-size:12px; line-height:20px; text-align:center;
+  }
   .chip-row{ display:flex; gap:7px; overflow-x:auto; padding-bottom:10px; scrollbar-width:none; }
   .chip-row::-webkit-scrollbar{ display:none; }
   .chip{ flex:0 0 auto; padding:6px 13px; border-radius:999px; background:var(--card); border:1px solid var(--line); font-size:12.5px; color:var(--ink-soft); white-space:nowrap; cursor:pointer; }
@@ -123,6 +137,11 @@
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); font-size:15px; color:var(--ink); font-family:inherit;
   }
   .field textarea{ resize:vertical; min-height:60px; }
+  .combo-list{ margin:-6px 0 10px; border-radius:10px; overflow:hidden; }
+  .combo-list:empty{ display:none; margin:0; }
+  .combo-item{ padding:9px 12px; font-size:14px; background:var(--card); border:1px solid var(--line); border-top:none; }
+  .combo-item:first-child{ border-top:1px solid var(--line); border-radius:0 0 0 0; }
+  .combo-item:last-child{ border-radius:0 0 10px 10px; }
   .field-row{ display:flex; gap:10px; }
   .field-row .field{ flex:1; }
   .check-row{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
@@ -176,8 +195,8 @@
 </head>
 <body>
 <div id="app">
-  <header class="topbar">
-    <h1 class="display" id="headerTitle">Ma Collection BD</h1>
+  <header class="topbar" id="topbar">
+    <h1 class="display" id="headerTitle">Collection de Bandes dessinées</h1>
     <div class="sub" id="headerSub"></div>
   </header>
   <main id="main"></main>
@@ -207,8 +226,13 @@
 /* ================================================================
    CONFIGURATION — à modifier facilement
    ================================================================ */
-// Titres exacts des BD à mettre en avant dans la section "En vitrine" de l'étagère (3 conseillé)
-const VITRINE_TITRES = ["Astérix le gaulois", "Astérix chez les Bretons", "Astérix aux jeux Olympiques"];
+// Titres par défaut mis en avant dans "En vitrine" la toute première fois que l'appli est ouverte.
+// Ensuite, la vitrine se gère directement dans l'appli (bouton "Gérer" sur l'étagère) et est mémorisée sur l'appareil.
+const DEFAULT_VITRINE = [
+  { titre:"Astérix le gaulois", exIndex:0 },
+  { titre:"Astérix chez les Bretons", exIndex:0 },
+  { titre:"Astérix aux jeux Olympiques", exIndex:0 }
+];
 
 /* ================================================================
    DONNÉES DE BASE (issues du tableau)
@@ -391,6 +415,19 @@ function loadAdded(){
 }
 function saveAdded(list){ try{ localStorage.setItem(LS_ADDED, JSON.stringify(list)); }catch(e){} }
 let userAdded = loadAdded();       // BD ajoutées via l'onglet "Ajouter", toujours normalisées en objets nommés
+
+const LS_VITRINE = "bdcollection_vitrine_v1";
+function normalizeVitrineEntry(v){
+  return typeof v === "string" ? { titre:v, exIndex:0 } : { titre:v.titre, exIndex:v.exIndex||0 };
+}
+function loadVitrine(){
+  try{
+    const stored = JSON.parse(localStorage.getItem(LS_VITRINE));
+    return Array.isArray(stored) ? stored.map(normalizeVitrineEntry) : DEFAULT_VITRINE.map(normalizeVitrineEntry);
+  }catch(e){ return DEFAULT_VITRINE.map(normalizeVitrineEntry); }
+}
+function saveVitrine(){ try{ localStorage.setItem(LS_VITRINE, JSON.stringify(VITRINE)); }catch(e){} }
+let VITRINE = loadVitrine();        // titres mis en avant sur l'étagère, modifiable via le bouton "Gérer"
 let PHOTOS = {};                   // { "ex<num>": ["dataURL compressé", ...] } — miroir en mémoire d'IndexedDB
 
 // --- IndexedDB : une seule table clé/valeur (clé = "ex<num>", valeur = tableau de dataURL) ---
@@ -569,6 +606,12 @@ function parseCote(c){
   if(!nums.length) return null;
   return nums.reduce((a,b)=>a+b,0)/nums.length;
 }
+// Affiche la côte telle quelle ("Non coté" reste tel quel), mais ajoute "€" dès qu'elle contient un nombre (y compris les fourchettes comme "10-15")
+function isNonCote(c){ return !c || /non\s*c[oô]t/i.test(c); }
+function coteDisplay(c){
+  if(isNonCote(c)) return c || "—";
+  return isNaN(parseFloat(c)) ? c : c + " €";
+}
 function etatColor(etat){
   if(!etat) return "#9A9790";
   const e = etat.toLowerCase();
@@ -580,14 +623,49 @@ function etatColor(etat){
   return "#9A9790";
 }
 function albumHasEO(a){ return a.exemplaires.some(e=>e.eo); }
+function multiLabel(n){
+  const words = {2:"en double", 3:"en triple", 4:"en quadruple", 5:"en quintuple"};
+  return words[n] || ("en "+n+" exemplaires");
+}
 function albumTotalVente(a){ return a.exemplaires.reduce((s,e)=>s+(e.vente||0),0); }
 function albumTotalCout(a){ return a.exemplaires.reduce((s,e)=>s+(e.cout||0),0); }
 function sameAnnee(a){ return a.exemplaires.every(e=>e.annee===a.exemplaires[0].annee) ? a.exemplaires[0].annee : null; }
 function findAlbumByTitre(titre){ return OWNED.find(a=>a.titre===titre); }
-function firstPhoto(a){
-  const ex = a.exemplaires[0];
+function photoForEx(ex){
+  if(!ex) return null;
   const arr = PHOTOS[ex.key];
   return (arr && arr.length) ? arr[0] : null;
+}
+
+// --- Recherche insensible aux accents/majuscules (utilisée par les suggestions du formulaire "Ajouter") ---
+function normalizeText(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
+function distinctValues(list){ return [...new Set(list.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")); }
+function distinctSeries(){ return distinctValues(OWNED.map(a=>a.serie)); }
+function distinctTitres(){ return distinctValues(OWNED.map(a=>a.titre)); }
+function distinctFormats(){ return distinctValues(OWNED.map(a=>a.format)); }
+function distinctEditeurs(){ return distinctValues(OWNED.flatMap(a=>a.exemplaires.map(e=>e.editeur))); }
+
+// Attache une suggestion accent-insensible à un champ texte, sans passer par un re-rendu complet (le focus/curseur ne bougent pas)
+function attachCombo(inputId, listId, getOptions){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  if(!input || !list) return;
+  function refresh(){
+    const q = normalizeText(input.value);
+    if(!q){ list.innerHTML=""; return; }
+    const matches = getOptions().filter(o=>normalizeText(o).includes(q)).slice(0,6);
+    list.innerHTML = matches.map(o=>`<div class="combo-item" data-value="${o.replace(/"/g,'&quot;')}">${o}</div>`).join("");
+    list.querySelectorAll(".combo-item").forEach(el=>{
+      el.addEventListener("mousedown", ev=>{
+        ev.preventDefault(); // se déclenche avant le blur de l'input, pour ne pas fermer la liste trop tôt
+        input.value = el.dataset.value;
+        list.innerHTML = "";
+      });
+    });
+  }
+  input.addEventListener("input", refresh);
+  input.addEventListener("focus", refresh);
+  input.addEventListener("blur", ()=> setTimeout(()=>{ list.innerHTML=""; }, 150));
 }
 
 /* ================================================================
@@ -601,29 +679,26 @@ let sheetState = { aid:null, exIndex:0 };
    ================================================================ */
 function renderShelf(){
   const maxC = Math.max(...SERIE_COUNTS.map(s=>s.count), 1);
-  const spines = SERIE_COUNTS.map(s=>{
+  const spinesAlpha = [...SERIE_COUNTS].sort((a,b)=>a.serie.localeCompare(b.serie, "fr"));
+  const spines = spinesAlpha.map(s=>{
     const w = Math.max(30, Math.round(22 + (s.count/maxC)*50));
     return `<div class="spine" style="width:${w}px" data-serie="${s.serie}" title="${s.serie}"><span class="label">${s.serie}</span></div>`;
   }).join("");
 
-  const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
-  const totalVente = OWNED.reduce((s,a)=>s+albumTotalVente(a),0);
-  const totalCote = OWNED.flatMap(a=>a.exemplaires).map(e=>parseCote(e.cote)).filter(v=>v!==null).reduce((s,v)=>s+v,0);
-
-  const vitrine = VITRINE_TITRES.map(t=>{
-    const a = findAlbumByTitre(t);
+  const vitrine = VITRINE.map(v=>{
+    const a = findAlbumByTitre(v.titre);
     if(!a) return "";
-    const ex = a.exemplaires[0];
-    const photo = firstPhoto(a);
+    const ex = a.exemplaires[v.exIndex] || a.exemplaires[0];
+    const photo = photoForEx(ex);
     const thumb = photo
       ? `<img src="${photo}">`
       : `<span class="ph-icon">＋</span><span class="ph-hint">Photo à ajouter</span>`;
     return `
-      <div class="card vitrine-card" data-detail="${a.aid}">
+      <div class="card vitrine-card" data-detail="${a.aid}" data-exidx="${a.exemplaires.indexOf(ex)}">
         <div class="vitrine-thumb">${thumb}</div>
         <div class="vitrine-main">
           <div class="vitrine-title">${a.titre}</div>
-          <div class="vitrine-meta">${a.serie} · Tome ${a.tome} · ${ex.etat}</div>
+          <div class="vitrine-meta">${a.serie} · Tome ${a.tome} · ${ex.etat}${a.exemplaires.length>1?" · Exemplaire "+(a.exemplaires.indexOf(ex)+1):""}</div>
         </div>
         <div class="chev">›</div>
       </div>
@@ -636,13 +711,11 @@ function renderShelf(){
       <div class="shelf">${spines}</div>
       <div class="shelf-floor"></div>
     </div>
-    <div class="mini-stats">
-      <div class="card mini-stat"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût</div></div>
-      <div class="card mini-stat"><div class="val mono">${eur(totalVente)}</div><div class="lab">Vente</div></div>
-      <div class="card mini-stat"><div class="val mono">${eur(totalCote)}</div><div class="lab">BDM / BD Gest</div></div>
+    <div class="row-between" style="margin:26px 2px 12px;">
+      <p class="section-title" style="margin:0;">En vitrine</p>
+      <button class="link-btn" id="manageVitrineBtn">Gérer</button>
     </div>
-    <p class="section-title">En vitrine</p>
-    ${vitrine || "<p style=\"font-size:13px; color:var(--ink-soft);\">Aucun des titres configurés dans VITRINE_TITRES n'a été trouvé.</p>"}
+    ${vitrine || "<p style=\"font-size:13px; color:var(--ink-soft);\">Aucun album en vitrine pour l'instant — appuie sur \\\"Gérer\\\" pour en choisir.</p>"}
   `;
 }
 
@@ -674,16 +747,14 @@ function renderCollection(){
     const multi = a.exemplaires.length>1;
     const ex = a.exemplaires[0];
     const yr = sameAnnee(a);
+    const hasEO = multi ? albumHasEO(a) : ex.eo;
     const sub = multi
-      ? `${a.serie} · T${a.tome} · ${yr?yr+" ":""}×${a.exemplaires.length}`
+      ? `${a.serie} · T${a.tome} · ${yr?yr+" · ":""}${multiLabel(a.exemplaires.length)}`
       : `${a.serie} · T${a.tome} · ${ex.editeur||""} ${ex.annee||""}`;
-    const badge = multi
-      ? `<span class="badge neutral">×${a.exemplaires.length}</span>`
-      : `<span class="badge" style="background:${etatColor(ex.etat)}">${ex.eo?"EO":ex.etat}</span>`;
-    const value = multi ? albumTotalVente(a) : (ex.cote && ex.cote!=="Non coté" ? null : ex.vente);
+    const badge = `<span class="badge" style="background:${etatColor(ex.etat)}">${hasEO?"EO":ex.etat}</span>`;
     const valueDisplay = multi
       ? eur(albumTotalVente(a))
-      : (ex.cote && ex.cote!=="Non coté" ? ex.cote+(isNaN(parseFloat(ex.cote))?"":" €") : eur(ex.vente));
+      : (!isNonCote(ex.cote) ? coteDisplay(ex.cote) : eur(ex.vente));
     return `
       <div class="card album-row" data-detail="${a.aid}">
         <div class="album-num mono">${ex.num}</div>
@@ -703,7 +774,10 @@ function renderCollection(){
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${state.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
 
   return `
-    <input class="search-input" id="searchBox" placeholder="Chercher un titre, une série, un éditeur…" value="${state.query}">
+    <div class="search-wrap">
+      <input class="search-input" id="searchBox" placeholder="Chercher un titre, une série, un éditeur…" value="${state.query}">
+      ${state.query ? `<button class="clear-search" id="clearSearch" aria-label="Effacer">×</button>` : ""}
+    </div>
     <div class="chip-row">${chips}</div>
     <div class="row-between">
       <div class="count-line">${list.length} album${list.length>1?'s':''}</div>
@@ -717,30 +791,38 @@ function renderCollection(){
    RENDU : AJOUTER
    ================================================================ */
 function renderAjouter(){
-  const datalist = SERIES.map(s=>`<option value="${s}">`).join("");
   const etatDatalist = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"].map(e=>`<option value="${e}">`).join("");
   return `
     <p style="font-size:13px; color:var(--ink-soft); margin:2px 2px 18px;">
       Cette BD sera automatiquement classée dans l'étagère, la collection et les stats.
-      Si une BD identique (même série, titre, tome et format) existe déjà, elle sera ajoutée comme second exemplaire (×2).
+      Si une BD identique (même série, titre, tome et format) existe déjà, elle sera ajoutée comme second exemplaire (en double).
     </p>
     <form id="addForm">
       <div class="field">
         <label>Série</label>
-        <input list="serieList" id="f_serie" required placeholder="ex. Astérix">
-        <datalist id="serieList">${datalist}</datalist>
+        <input id="f_serie" required placeholder="ex. Astérix" autocomplete="off">
+        <div class="combo-list" id="combo_serie"></div>
       </div>
       <div class="field">
         <label>Titre</label>
-        <input id="f_titre" required placeholder="ex. Astérix chez les Pictes">
+        <input id="f_titre" required placeholder="ex. Astérix chez les Pictes" autocomplete="off">
+        <div class="combo-list" id="combo_titre"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Tome</label><input id="f_tome" placeholder="ex. 35 ou Unique"></div>
-        <div class="field"><label>Format</label><input id="f_format" value="Classique"></div>
+        <div class="field">
+          <label>Format</label>
+          <input id="f_format" value="Classique" autocomplete="off">
+          <div class="combo-list" id="combo_format"></div>
+        </div>
       </div>
       <div class="field-row">
         <div class="field"><label>Année</label><input id="f_annee" placeholder="ex. 2013"></div>
-        <div class="field"><label>Éditeur</label><input id="f_editeur" placeholder="ex. Albert René"></div>
+        <div class="field">
+          <label>Éditeur</label>
+          <input id="f_editeur" placeholder="ex. Albert René" autocomplete="off">
+          <div class="combo-list" id="combo_editeur"></div>
+        </div>
       </div>
       <div class="field">
         <label>État</label>
@@ -920,7 +1002,7 @@ function renderSheet(){
     <div class="ledger" style="margin-top:14px;">
       <div><div class="v mono">${eur(ex.cout)}</div><div class="l">Coût</div></div>
       <div><div class="v mono">${eur(ex.vente)}</div><div class="l">Vente</div></div>
-      <div><div class="v mono">${ex.cote||"—"}</div><div class="l">BDM/BD Gest</div></div>
+      <div><div class="v mono">${coteDisplay(ex.cote)}</div><div class="l">BDM/BD Gest</div></div>
     </div>
     <p class="sheet-note">${ex.commentaire || "Aucune note."}</p>
     <p class="photos-title">Photos</p>
@@ -933,8 +1015,8 @@ function renderSheet(){
   `;
 }
 
-function openDetail(aid){
-  sheetState = { aid:Number(aid), exIndex:0 };
+function openDetail(aid, exIndex){
+  sheetState = { aid:Number(aid), exIndex:Number(exIndex)||0 };
   document.getElementById("sheet").innerHTML = renderSheet();
   document.getElementById("sheet").classList.add("open");
   document.getElementById("backdrop").classList.add("open");
@@ -979,10 +1061,110 @@ function bindSheetEvents(){
 }
 
 /* ================================================================
+   GESTION DE LA VITRINE (depuis l'appli, sans toucher au code)
+   ================================================================ */
+let vitrineQuery = "";
+function renderVitrineManager(){
+  const current = VITRINE.map((v,i)=>{
+    const a = findAlbumByTitre(v.titre);
+    const multi = a && a.exemplaires.length>1;
+    const pills = multi ? `
+      <div class="ex-pill-row">
+        ${a.exemplaires.map((e,ei)=>`<button type="button" class="ex-pill ${ei===v.exIndex?'active':''}" data-vitex="${i}:${ei}">${ei+1}</button>`).join("")}
+      </div>
+    ` : "";
+    return `
+      <div class="vitrine-pick">
+        <div>
+          <div class="album-title" style="font-size:14px;">${v.titre}</div>
+          <div class="album-sub">${a ? a.serie+(multi?" · choisis l'exemplaire :":"") : "Introuvable dans ta collection"}</div>
+          ${pills}
+        </div>
+        <button type="button" class="vitrine-remove" data-removevitrine="${i}">Retirer</button>
+      </div>
+    `;
+  }).join("") || `<p class="empty" style="padding:20px 0;">Aucun album en vitrine pour l'instant.</p>`;
+
+  const q = normalizeText(vitrineQuery);
+  const vitrineTitres = VITRINE.map(v=>v.titre);
+  const results = q ? OWNED.filter(a=>!vitrineTitres.includes(a.titre) && normalizeText(a.titre).includes(q)).slice(0,8) : [];
+  const resultsHtml = results.map(a=>`
+    <div class="vitrine-pick" data-addvitrine="${a.titre.replace(/"/g,'&quot;')}">
+      <div>
+        <div class="album-title" style="font-size:14px;">${a.titre}</div>
+        <div class="album-sub">${a.serie} · T${a.tome}</div>
+      </div>
+      <span class="chev">+</span>
+    </div>
+  `).join("");
+
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">Étagère</div>
+    <div class="sheet-title">Gérer la vitrine</div>
+    <p style="font-size:13px; color:var(--ink-soft); margin:0 0 16px;">Choisis les albums mis en avant sur l'étagère. Pour un album en double ou triple, sélectionne l'exemplaire à afficher.</p>
+    ${current}
+    <p class="section-title" style="margin-top:22px;">Ajouter un album</p>
+    <input class="search-input" id="vitrineSearch" placeholder="Chercher un titre…" value="${vitrineQuery}">
+    <div id="vitrineResults">${resultsHtml}</div>
+  `;
+}
+function openVitrineManager(){
+  vitrineQuery = "";
+  document.getElementById("sheet").innerHTML = renderVitrineManager();
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+  bindVitrineManagerEvents();
+}
+function bindVitrineManagerEvents(){
+  document.querySelectorAll("[data-removevitrine]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      VITRINE.splice(Number(el.dataset.removevitrine), 1);
+      saveVitrine();
+      refreshVitrineManagerAndShelf();
+    });
+  });
+  document.querySelectorAll("[data-vitex]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const [i, ei] = el.dataset.vitex.split(":").map(Number);
+      VITRINE[i].exIndex = ei;
+      saveVitrine();
+      refreshVitrineManagerAndShelf();
+    });
+  });
+  document.querySelectorAll("[data-addvitrine]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const titre = el.dataset.addvitrine;
+      if(!VITRINE.some(v=>v.titre===titre)) VITRINE.push({ titre, exIndex:0 });
+      saveVitrine();
+      vitrineQuery = "";
+      refreshVitrineManagerAndShelf();
+    });
+  });
+  const searchBox = document.getElementById("vitrineSearch");
+  if(searchBox){
+    searchBox.addEventListener("input", e=>{
+      vitrineQuery = e.target.value;
+      const caret = searchBox.selectionStart;
+      document.getElementById("sheet").innerHTML = renderVitrineManager();
+      bindVitrineManagerEvents();
+      const nb = document.getElementById("vitrineSearch");
+      if(nb){ nb.focus(); nb.setSelectionRange(caret, caret); }
+    });
+  }
+}
+function refreshVitrineManagerAndShelf(){
+  document.getElementById("sheet").innerHTML = renderVitrineManager();
+  bindVitrineManagerEvents();
+  if(state.tab==="shelf") render();
+}
+
+/* ================================================================
    NAVIGATION ENTRE ONGLETS & LIAISON DES ÉVÉNEMENTS
    ================================================================ */
 const HEADERS = {
-  shelf: ()=>["Ma Collection BD", OWNED.reduce((s,a)=>s+a.exemplaires.length,0)+" albums · "+SERIES.length+" séries"],
+  shelf: ()=>["Collection de Bandes dessinées", OWNED.reduce((s,a)=>s+a.exemplaires.length,0)+" albums · "+SERIES.length+" séries"],
   collection: ()=>["Collection", "Recherche et filtres"],
   ajouter: ()=>["Ajouter une BD", "Elle sera classée automatiquement"],
   stats: ()=>["Statistiques", "Bilan de la collection"]
@@ -993,6 +1175,7 @@ function render(){
   const [title, sub] = HEADERS[state.tab]();
   document.getElementById("headerTitle").textContent = title;
   document.getElementById("headerSub").textContent = sub;
+  document.getElementById("topbar").classList.toggle("centered", state.tab==="shelf");
   const main = document.getElementById("main");
   if(state.tab==="shelf") main.innerHTML = renderShelf();
   else if(state.tab==="collection") main.innerHTML = renderCollection();
@@ -1002,24 +1185,37 @@ function render(){
   document.querySelectorAll(".tabbar button").forEach(b=>b.classList.toggle("active", b.dataset.tab===state.tab));
 
   document.querySelectorAll("[data-detail]").forEach(el=>{
-    el.addEventListener("click", ()=>openDetail(el.dataset.detail));
+    el.addEventListener("click", ()=>openDetail(el.dataset.detail, el.dataset.exidx));
   });
   document.querySelectorAll(".spine").forEach(el=>{
     el.addEventListener("click", ()=>{ state.tab="collection"; state.filterSerie = el.dataset.serie; state.query=""; render(); });
   });
+  const manageVitrineBtn = document.getElementById("manageVitrineBtn");
+  if(manageVitrineBtn) manageVitrineBtn.addEventListener("click", openVitrineManager);
   document.querySelectorAll(".chip").forEach(el=>{
     el.addEventListener("click", ()=>{ state.filterSerie = el.dataset.chip || null; render(); });
   });
   const searchBox = document.getElementById("searchBox");
   if(searchBox) searchBox.addEventListener("input", e=>{ state.query = e.target.value; renderPartialCollection(); });
+  bindClearSearch();
   const sortSelect = document.getElementById("sortSelect");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
   const addForm = document.getElementById("addForm");
-  if(addForm) addForm.addEventListener("submit", handleAddSubmit);
+  if(addForm){
+    addForm.addEventListener("submit", handleAddSubmit);
+    attachCombo("f_serie", "combo_serie", distinctSeries);
+    attachCombo("f_titre", "combo_titre", distinctTitres);
+    attachCombo("f_format", "combo_format", distinctFormats);
+    attachCombo("f_editeur", "combo_editeur", distinctEditeurs);
+  }
   const exportBtn = document.getElementById("exportBtn");
   if(exportBtn) exportBtn.addEventListener("click", exportBackup);
   const importInput = document.getElementById("importInput");
   if(importInput) importInput.addEventListener("change", e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); });
+}
+function bindClearSearch(){
+  const btn = document.getElementById("clearSearch");
+  if(btn) btn.addEventListener("click", ()=>{ state.query=""; renderPartialCollection(); });
 }
 
 // re-rendu léger pendant la frappe dans la recherche (garde le focus du clavier)
@@ -1029,10 +1225,11 @@ function renderPartialCollection(){
   const box = document.getElementById("searchBox");
   const caret = box ? box.selectionStart : null;
   main.innerHTML = renderCollection();
-  document.querySelectorAll("[data-detail]").forEach(el=> el.addEventListener("click", ()=>openDetail(el.dataset.detail)));
+  document.querySelectorAll("[data-detail]").forEach(el=> el.addEventListener("click", ()=>openDetail(el.dataset.detail, el.dataset.exidx)));
   document.querySelectorAll(".chip").forEach(el=> el.addEventListener("click", ()=>{ state.filterSerie = el.dataset.chip || null; render(); }));
   const sortSelect = document.getElementById("sortSelect");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
+  bindClearSearch();
   const newBox = document.getElementById("searchBox");
   if(newBox){
     newBox.focus();
