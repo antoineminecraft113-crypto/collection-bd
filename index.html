@@ -101,6 +101,11 @@
   .vitrine-meta{ font-size:12px; color:var(--ink-soft); }
   .chev{ color:var(--ink-soft); font-size:16px; }
   .switch-label{ display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(255,255,255,0.85); margin:0 2px 14px; cursor:pointer; }
+  .reminder-banner{ display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.25); border-radius:14px; padding:11px 12px; margin-bottom:18px; }
+  .reminder-icon{ font-size:15px; flex:0 0 auto; }
+  .reminder-text{ flex:1; font-size:12px; color:#fff; line-height:1.35; }
+  .reminder-btn{ flex:0 0 auto; background:#fff; color:var(--accent); border:none; border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; }
+  .reminder-dismiss{ flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.7); font-size:16px; padding:2px 4px; }
   .switch-label input{ display:none; }
   .switch-track{ position:relative; width:44px; height:26px; border-radius:999px; background:rgba(255,255,255,0.3); flex:0 0 auto; transition:background 0.2s; }
   .switch-thumb{ position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
@@ -145,6 +150,7 @@
   .album-right{ flex:0 0 auto; text-align:right; }
   .badge{ display:inline-block; font-size:10px; font-weight:700; padding:3px 7px; border-radius:999px; color:#fff; margin-bottom:4px; white-space:nowrap; }
   .badge.neutral{ background:var(--ink-soft); }
+  .badge.eo-badge{ background:var(--accent); }
   .val-line{ font-size:12.5px; font-weight:700; color:var(--gold); }
   .empty{ text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:14px; }
 
@@ -154,6 +160,8 @@
   .bar-track{ height:8px; background:var(--well); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
   .bar-fill{ height:100%; border-radius:6px; background:var(--accent); }
   .rarity-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .trash-actions{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex:0 0 auto; }
+  .trash-purge{ color:#a32d2d; font-size:11.5px; }
   .rarity-row:last-child{ border-bottom:none; }
   .rarity-rank{ width:20px; color:var(--ink-soft); font-size:12px; }
 
@@ -165,6 +173,10 @@
     box-sizing:border-box; -webkit-appearance:none; appearance:none;
   }
   .field input[type="date"]{ min-height:41px; }
+  .field select{
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2383807A" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>');
+    background-repeat:no-repeat; background-position:right 12px center; background-size:16px; padding-right:36px;
+  }
   .field textarea{ resize:vertical; min-height:60px; }
   .combo-list{ margin:-6px 0 10px; border-radius:10px; overflow:hidden; }
   .combo-list:empty{ display:none; margin:0; }
@@ -212,6 +224,13 @@
   .ledger .v{ font-size:16px; font-weight:700; }
   .ledger .l{ font-size:10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
   .sheet-note{ font-size:14px; font-style:italic; color:var(--ink-soft); line-height:1.5; border-left:3px solid var(--line); padding-left:12px; margin-bottom:18px; }
+  .faq-item{ border-bottom:1px solid var(--line); padding:12px 0; }
+  .faq-item summary{ font-size:14.5px; font-weight:600; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{ content:"+"; font-size:18px; color:var(--ink-soft); font-weight:400; margin-left:8px; }
+  .faq-item[open] summary::after{ content:"–"; }
+  .faq-item p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; margin:10px 0 0; }
+  .guide-credit{ text-align:center; font-size:12px; color:var(--ink-soft); margin-top:22px; }
   .photos-title{ font-size:12px; text-transform:uppercase; letter-spacing:0.07em; color:var(--ink-soft); margin-bottom:10px; }
   .photo-strip{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
   .photo-thumb{ position:relative; flex:0 0 auto; width:78px; height:78px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
@@ -529,6 +548,15 @@ function restoreParaItem(id){
     saveParabdTrash();
   }
 }
+async function purgeParaItem(id){
+  const idx = parabdTrash.findIndex(p=>p.id===id);
+  if(idx>=0){
+    parabdTrash.splice(idx,1);
+    saveParabdTrash();
+  }
+  const key = "para"+id;
+  if(PHOTOS[key]){ PHOTOS[key] = []; await idbSavePhotosFor(key); }
+}
 function editParaItem(id, fields){
   const idx = parabdItems.findIndex(p=>p.id===id);
   if(idx>=0) parabdItems[idx] = { ...fields, id, modifiedAt: new Date().toISOString() };
@@ -659,6 +687,8 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
+const APP_VERSION = "1.2.3"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
+const APP_VERSION_DATE = "18/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
   if(Array.isArray(r)){
@@ -718,31 +748,75 @@ function refreshDerived(){
 refreshDerived();
 
 // --- Suppression / modification d'un exemplaire ---
+const LS_BD_TRASH = "bdcollection_bd_trash_v1";
+function loadBdTrash(){ try{ return JSON.parse(localStorage.getItem(LS_BD_TRASH) || "[]"); }catch(e){ return []; } }
+function saveBdTrash(){ try{ localStorage.setItem(LS_BD_TRASH, JSON.stringify(bdTrash)); }catch(e){} }
+let bdTrash = loadBdTrash(); // snapshot complet de chaque exemplaire supprimé (base ou ajouté), avec deletedAt
+
+// --- Rappel de sauvegarde (in-app uniquement : une page statique ne peut pas envoyer de vraie notification) ---
+const LS_LAST_EXPORT = "bdcollection_last_export_v1";
+const LS_REMINDER_DISMISS = "bdcollection_reminder_dismiss_v1";
+function getLastExportAt(){ try{ return localStorage.getItem(LS_LAST_EXPORT); }catch(e){ return null; } }
+function setLastExportAt(){ try{ localStorage.setItem(LS_LAST_EXPORT, new Date().toISOString()); }catch(e){} }
+function getReminderDismissedAt(){ try{ return localStorage.getItem(LS_REMINDER_DISMISS); }catch(e){ return null; } }
+function dismissReminder(){ try{ localStorage.setItem(LS_REMINDER_DISMISS, new Date().toISOString()); }catch(e){} }
+function daysSince(iso){ if(!iso) return Infinity; return (Date.now() - new Date(iso).getTime()) / 86400000; }
+function shouldShowBackupReminder(){
+  const hasContent = userAdded.length>0 || parabdItems.length>0 || Object.keys(PHOTOS).length>0;
+  if(!hasContent) return false;
+  return daysSince(getLastExportAt()) >= 30 && daysSince(getReminderDismissedAt()) >= 1;
+}
+
 function deleteExemplaire(num){
+  // capture un instantané complet (album + exemplaire) avant suppression, qu'il vienne de la base ou d'un ajout
+  const album = ALBUMS.find(a=>a.exemplaires.some(e=>e.num===num));
+  const ex = album && album.exemplaires.find(e=>e.num===num);
+  if(album && ex){
+    bdTrash.push({
+      num, serie:album.serie, titre:album.titre, tome:album.tome, format:album.format,
+      eo:ex.eo, annee:ex.annee, editeur:ex.editeur, etat:ex.etat, cout:ex.cout, vente:ex.vente, cote:ex.cote, commentaire:ex.commentaire,
+      deletedAt: new Date().toISOString()
+    });
+    saveBdTrash();
+  }
   userAdded = userAdded.filter(r=>r.num!==num);
   if(num < USER_ID_BASE){
     deletedNums.add(num);
-    deletedAt[num] = new Date().toISOString();
     saveDeleted();
-    saveDeletedAt();
   }
   saveAdded(userAdded);
   refreshDerived();
 }
 function trashedRows(){
-  const liveNums = new Set(userAdded.map(r=>r.num)); // exclut les BD juste éditées (remplacées, pas supprimées)
-  return RAW.map(normalizeRow)
-    .filter(r=>deletedNums.has(r.num) && !liveNums.has(r.num))
-    .map(r=>({ ...r, deletedAt: deletedAt[r.num] || null }));
+  return bdTrash.slice();
 }
 function restoreDeleted(num){
-  deletedNums.delete(num);
-  delete deletedAt[num];
-  saveDeleted();
-  saveDeletedAt();
-  userAdded = userAdded.filter(r=>r.num!==num); // enlève une éventuelle version modifiée, pour retrouver l'originale telle quelle
+  const idx = bdTrash.findIndex(r=>r.num===num);
+  const snapshot = idx>=0 ? bdTrash[idx] : null;
+  if(idx>=0){ bdTrash.splice(idx,1); saveBdTrash(); }
+  if(num < USER_ID_BASE){
+    // BD de base : on retire juste le masquage, l'original réapparaît tel quel depuis RAW
+    deletedNums.delete(num);
+    saveDeleted();
+    userAdded = userAdded.filter(r=>r.num!==num); // enlève une éventuelle version modifiée, pour retrouver l'originale telle quelle
+  } else if(snapshot){
+    // BD ajoutée par l'utilisateur : elle n'existe nulle part ailleurs, on la recrée depuis l'instantané
+    userAdded.push({
+      num, serie:snapshot.serie, titre:snapshot.titre, tome:snapshot.tome, format:snapshot.format,
+      eo:snapshot.eo, annee:snapshot.annee, editeur:snapshot.editeur, etat:snapshot.etat,
+      cout:snapshot.cout, vente:snapshot.vente, cote:snapshot.cote, commentaire:snapshot.commentaire, owned:true
+    });
+  }
   saveAdded(userAdded);
   refreshDerived();
+}
+async function purgeBdTrash(num){
+  const idx = bdTrash.findIndex(r=>r.num===num);
+  if(idx>=0){ bdTrash.splice(idx,1); saveBdTrash(); }
+  const key = "ex"+num;
+  if(PHOTOS[key]){ PHOTOS[key] = []; await idbSavePhotosFor(key); }
+  // Pour une BD de base, le masquage (deletedNums) reste : elle continue de ne pas apparaître dans la collection.
+  // Pour une BD ajoutée, elle n'existait déjà plus ailleurs : la sortir de la corbeille suffit à l'effacer pour de bon.
 }
 function editExemplaire(num, fields){
   const withTimestamp = { ...fields, modifiedAt: new Date().toISOString() };
@@ -788,6 +862,22 @@ function showConfirm(message, confirmLabel, onConfirm){
   document.body.appendChild(overlay);
   overlay.querySelector("#confirmCancelBtn").addEventListener("click", ()=>overlay.remove());
   overlay.querySelector("#confirmOkBtn").addEventListener("click", ()=>{ overlay.remove(); onConfirm(); });
+}
+function showChoice(message, yesLabel, noLabel, onYes, onNo){
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <p class="confirm-msg">${message}</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn" id="choiceNoBtn">${noLabel}</button>
+        <button class="confirm-btn confirm-primary" id="choiceYesBtn">${yesLabel}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#choiceNoBtn").addEventListener("click", ()=>{ overlay.remove(); onNo(); });
+  overlay.querySelector("#choiceYesBtn").addEventListener("click", ()=>{ overlay.remove(); onYes(); });
 }
 
 // --- Visionneuse plein écran des photos, avec balayage pour passer d'une photo à l'autre ---
@@ -849,15 +939,24 @@ function coteDisplay(c){
   if(isNonCote(c)) return c || "—";
   return isNaN(parseFloat(c)) ? c : c + " €";
 }
+const ETAT_OPTIONS = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"];
 function etatColor(etat){
   if(!etat) return "#9A9790";
   const e = etat.toLowerCase();
-  if(e.includes("neuf")) return "#3E5C46";
-  if(e.includes("très mauvais")) return "#8a2c22";
-  if(e.includes("moyen")) return "#B4872A";
-  if(e.includes("très bon")) return "#1F3A54";
-  if(e.includes("bon")) return "#4A6C8C";
+  if(e.includes("neuf")) return "#13BE16";
+  if(e.includes("très mauvais")) return "#BF1212";
+  if(e.includes("moyen")) return "#EBB521";
+  if(e.includes("très bon")) return "#17E81A";
+  if(e.includes("bon")) return "#C7F261";
   return "#9A9790";
+}
+// Certaines couleurs d'état sont claires : le texte blanc n'y serait pas assez lisible, donc on adapte au cas par cas.
+function etatTextColor(etat){
+  if(!etat) return "#fff";
+  const e = etat.toLowerCase();
+  if(e.includes("neuf")) return "#fff";
+  if(e.includes("très mauvais")) return "#fff";
+  return "#1B1B16"; // moyen, très bon, bon : fonds clairs, texte sombre
 }
 function albumHasEO(a){ return a.exemplaires.some(e=>e.eo); }
 function multiLabel(n){
@@ -876,10 +975,45 @@ function photoForEx(ex){
 
 // --- Recherche insensible aux accents/majuscules (utilisée par les suggestions du formulaire "Ajouter") ---
 function normalizeText(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
+
+// --- Distance de Levenshtein (nombre minimal de modifications pour passer d'une chaîne à l'autre) ---
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if(m===0) return n;
+  if(n===0) return m;
+  const d = Array.from({length:m+1}, (_,i)=>[i, ...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) d[0][j] = j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      d[i][j] = a[i-1]===b[j-1] ? d[i-1][j-1] : 1 + Math.min(d[i-1][j], d[i][j-1], d[i-1][j-1]);
+    }
+  }
+  return d[m][n];
+}
+// Cherche une catégorie déjà existante (pour cette série) proche de celle tapée.
+// Retourne {match, exact:true} pour une correspondance accents/majuscules près, {match, exact:false} pour une orthographe proche (faute de frappe probable), ou null si rien de proche.
+function findSimilarCategory(serie, typed){
+  const existing = distinctValues(paraItemsFor(serie).map(p=>p.categorie));
+  const normTyped = normalizeText(typed);
+  const exact = existing.find(c=>normalizeText(c)===normTyped);
+  if(exact) return { match:exact, exact:true };
+  let best = null, bestDist = Infinity;
+  existing.forEach(c=>{
+    const d = levenshtein(normTyped, normalizeText(c));
+    if(d < bestDist){ bestDist = d; best = c; }
+  });
+  if(!best) return null;
+  const threshold = Math.max(1, Math.floor(Math.max(normTyped.length, normalizeText(best).length) * 0.3));
+  if(bestDist>0 && bestDist<=threshold) return { match:best, exact:false };
+  return null;
+}
 function distinctValues(list){ return [...new Set(list.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")); }
 function distinctSeries(){ return distinctValues(OWNED.map(a=>a.serie)); }
 function distinctTitres(){ return distinctValues(OWNED.map(a=>a.titre)); }
 function distinctFormats(){ return distinctValues(OWNED.map(a=>a.format)); }
+// Regroupe les variantes d'un même format (ex. "Classique - 14b", "Classique - 1C" → "Classique") pour ne pas les lister séparément.
+function formatBase(format){ return (format||"").split(" - ")[0].trim(); }
+function distinctFormatBases(){ return [...new Set(distinctFormats().map(formatBase))].sort((a,b)=>a.localeCompare(b,"fr")); }
 function distinctEditeurs(){ return distinctValues(OWNED.flatMap(a=>a.exemplaires.map(e=>e.editeur))); }
 
 // --- Helpers Para-BD ---
@@ -915,7 +1049,7 @@ function attachCombo(inputId, listId, getOptions){
 /* ================================================================
    ÉTAT DE L'INTERFACE
    ================================================================ */
-let state = { tab:"shelf", query:"", filterSerie:null, sort:"num", shelfCovers:false };
+let state = { tab:"shelf", query:"", filterSerie:null, filterFormat:null, sort:"num", shelfCovers:false };
 let parabdState = { level:"series", serie:null, categorie:null, sort:"add" };
 let sheetState = { aid:null, exIndex:0 };
 
@@ -987,7 +1121,17 @@ function renderShelf(){
       </div>
     `;
 
+  const reminder = shouldShowBackupReminder() ? `
+    <div class="reminder-banner" id="backupReminder">
+      <span class="reminder-icon">⏱</span>
+      <span class="reminder-text">${getLastExportAt() ? "Ça fait plus d'un mois que tu n'as pas exporté de sauvegarde." : "Tu n'as encore jamais exporté de sauvegarde de tes ajouts et photos."}</span>
+      <button class="reminder-btn" id="reminderExportBtn">Exporter</button>
+      <button class="reminder-dismiss" id="reminderDismissBtn">×</button>
+    </div>
+  ` : "";
+
   return `
+    ${reminder}
     <p class="section-title">Ton étagère — ${OWNED.reduce((s,a)=>s+a.exemplaires.length,0)} albums, ${SERIES.length} séries</p>
     <label class="switch-label">
       <input type="checkbox" id="coverToggle" ${state.shelfCovers?"checked":""}>
@@ -1009,11 +1153,12 @@ function renderShelf(){
 function renderCollection(){
   let list = OWNED.slice();
   if(state.filterSerie) list = list.filter(a=>a.serie===state.filterSerie);
+  if(state.filterFormat) list = list.filter(a=>formatBase(a.format)===state.filterFormat);
   if(state.query){
-    const q = state.query.toLowerCase();
+    const q = normalizeText(state.query);
     list = list.filter(a=>{
-      const inEditeurs = a.exemplaires.some(e=>(e.editeur||"").toLowerCase().includes(q));
-      return a.titre.toLowerCase().includes(q) || a.serie.toLowerCase().includes(q) || inEditeurs;
+      const inEditeurs = a.exemplaires.some(e=>normalizeText(e.editeur||"").includes(q));
+      return normalizeText(a.titre).includes(q) || normalizeText(a.serie).includes(q) || inEditeurs;
     });
   }
   if(state.sort==="num") list.sort((a,b)=>a.exemplaires[0].num-b.exemplaires[0].num);
@@ -1051,13 +1196,13 @@ function renderCollection(){
     const sub = multi
       ? `${a.serie} · T${a.tome} · ${yr?yr+" · ":""}${multiLabel(a.exemplaires.length)}`
       : `${a.serie} · T${a.tome} · ${ex.editeur||"Non renseigné"} · ${ex.annee||"Non renseigné"}`;
-    const badge = `<span class="badge" style="background:${etatColor(ex.etat)}">${hasEO?"EO":ex.etat}</span>`;
+    const badge = `${hasEO?'<span class="badge eo-badge">EO</span> ':''}<span class="badge" style="background:${etatColor(ex.etat)}; color:${etatTextColor(ex.etat)};">${ex.etat||"Non renseigné"}</span>`;
     const valueDisplay = multi
       ? eur(albumTotalVente(a))
       : (!isNonCote(ex.cote) ? coteDisplay(ex.cote) : eur(ex.vente));
     return `
       <div class="card album-row" data-detail="${a.aid}">
-        <div class="album-num mono">${ex.num}</div>
+        <div class="album-num mono">${ex.num < USER_ID_BASE ? ex.num : "＋"}</div>
         <div class="album-main">
           <div class="album-title">${a.titre}</div>
           <div class="album-sub">${sub}</div>
@@ -1072,6 +1217,7 @@ function renderCollection(){
 
   const sortOptions = {num:"Numéro", alpha:"Alphabétique", vente:"Valeur", cote:"Côte", eo:"EO d'abord", tome:"Tome", parution:"Ordre de parution"};
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${state.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
+  const formatOpts = distinctFormatBases().map(f=>`<option value="${f}" ${state.filterFormat===f?"selected":""}>${f}</option>`).join("");
 
   return `
     <div class="search-wrap">
@@ -1079,9 +1225,13 @@ function renderCollection(){
       ${state.query ? `<button class="clear-search" id="clearSearch" aria-label="Effacer">×</button>` : ""}
     </div>
     <div class="chip-row">${chips}</div>
-    <div class="row-between">
-      <div class="count-line">${list.length} album${list.length>1?'s':''}</div>
-      <select class="sort-select" id="sortSelect">${sortOpts}</select>
+    <div class="count-line">${list.length} album${list.length>1?'s':''}</div>
+    <div class="row-between" style="gap:8px; margin-bottom:14px;">
+      <select class="sort-select" id="formatFilterSelect" style="flex:1; min-width:0;">
+        <option value="">Tous les formats</option>
+        ${formatOpts}
+      </select>
+      <select class="sort-select" id="sortSelect" style="flex:1; min-width:0;">${sortOpts}</select>
     </div>
     ${rows}
   `;
@@ -1091,7 +1241,6 @@ function renderCollection(){
    RENDU : AJOUTER
    ================================================================ */
 function renderAjouter(){
-  const etatDatalist = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"].map(e=>`<option value="${e}">`).join("");
   return `
     <form id="addForm">
       <div class="field">
@@ -1122,8 +1271,10 @@ function renderAjouter(){
       </div>
       <div class="field">
         <label>État</label>
-        <input list="etatList" id="f_etat" placeholder="ex. Très bon état">
-        <datalist id="etatList">${etatDatalist}</datalist>
+        <select id="f_etat">
+          <option value="">Non renseigné</option>
+          ${ETAT_OPTIONS.map(e=>`<option value="${e}">${e}</option>`).join("")}
+        </select>
       </div>
       <div class="field-row">
         <div class="field"><label>Coût (€)</label><input id="f_cout" type="number" step="0.01" placeholder="0.00"></div>
@@ -1161,9 +1312,13 @@ function renderAjouter(){
 async function exportBackup(){
   const payload = {
     schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-    added: userAdded, deleted: [...deletedNums], parabd: parabdItems, parabdTrash: parabdTrash, photos: PHOTOS
+    added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, photos: PHOTOS
   };
-  const filename = "collection-bd-sauvegarde-" + new Date().toISOString().slice(0,10) + ".json";
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,"0");
+  const mm = String(now.getMonth()+1).padStart(2,"0");
+  const yy = String(now.getFullYear()).slice(2);
+  const filename = `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json`;
   const blob = new Blob([JSON.stringify(payload)], { type:"application/json" });
 
   // Sur iPhone, on propose d'abord le partage natif (permet de choisir "Mail" avec le fichier
@@ -1172,6 +1327,7 @@ async function exportBackup(){
     const file = new File([blob], filename, { type:"application/json" });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
       await navigator.share({ files:[file], title:"Sauvegarde Collection BD" });
+      setLastExportAt();
       return;
     }
   }catch(err){ /* l'utilisateur a peut-être juste annulé le partage : pas grave */ }
@@ -1184,6 +1340,7 @@ async function exportBackup(){
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  setLastExportAt();
 }
 function importBackup(file){
   const reader = new FileReader();
@@ -1198,6 +1355,10 @@ function importBackup(file){
       saveAdded(userAdded);
       (Array.isArray(data.deleted) ? data.deleted : []).forEach(n=>deletedNums.add(n));
       saveDeleted();
+      const incomingBdTrash = Array.isArray(data.bdTrash) ? data.bdTrash : [];
+      const existingBdTrashNums = new Set(bdTrash.map(r=>r.num));
+      incomingBdTrash.forEach(r=>{ if(!existingBdTrashNums.has(r.num)){ bdTrash.push(r); existingBdTrashNums.add(r.num); } });
+      saveBdTrash();
       const incomingParabd = Array.isArray(data.parabd) ? data.parabd : [];
       const existingParaIds = new Set(parabdItems.map(p=>p.id));
       incomingParabd.forEach(p=>{ if(!existingParaIds.has(p.id)){ parabdItems.push(p); existingParaIds.add(p.id); } });
@@ -1256,6 +1417,12 @@ function handleAddSubmit(e){
 /* ================================================================
    RENDU : STATISTIQUES
    ================================================================ */
+function photoProgress(){
+  const allEx = OWNED.flatMap(a=>a.exemplaires.map(e=>({...e, serie:a.serie, titre:a.titre, tome:a.tome})));
+  const missing = allEx.filter(e=>!(PHOTOS[e.key]||[]).length);
+  return { total: allEx.length, withPhoto: allEx.length-missing.length, missing };
+}
+
 function renderStats(){
   const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
   const totalVente = OWNED.reduce((s,a)=>s+albumTotalVente(a),0);
@@ -1279,12 +1446,42 @@ function renderStats(){
     </div>
   `).join("");
 
+  const { total:photoTotal, withPhoto, missing } = photoProgress();
+  const photoPct = photoTotal ? Math.round(withPhoto/photoTotal*100) : 0;
+  const missingHtml = missing.length ? missing.map(e=>`
+    <div class="rarity-row">
+      <span style="flex:1;">${e.titre}${e.tome!=="Unique"?" · T"+e.tome:""} <span style="color:var(--ink-soft);">· ${e.serie}</span></span>
+    </div>
+  `).join("") : `<p style="font-size:13px; color:rgba(255,255,255,0.75); margin:0;">Toutes les BD ont au moins une photo !</p>`;
+
+  const etatCounts = ETAT_OPTIONS.map(e=>({
+    etat: e,
+    count: OWNED.reduce((s,a)=>s+a.exemplaires.filter(ex=>ex.etat===e).length, 0)
+  }));
+  const etatTotal = OWNED.reduce((s,a)=>s+a.exemplaires.length, 0);
+  const etatMax = Math.max(...etatCounts.map(e=>e.count), 1);
+  const etatBars = etatCounts.map(e=>`
+    <div class="bar-row">
+      <div class="bar-label"><span>${e.etat}</span><span class="mono">${e.count}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(e.count/etatMax*100).toFixed(0)}%; background:${etatColor(e.etat)};"></div></div>
+    </div>
+  `).join("");
+
   return `
     <div class="mini-stats">
       <div class="card mini-stat"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût total</div></div>
       <div class="card mini-stat"><div class="val mono">${eur(totalVente)}</div><div class="lab">Vente estim.</div></div>
       <div class="card mini-stat"><div class="val mono">${eur(totalCote)}</div><div class="lab">BDM / BD Gest</div></div>
     </div>
+    <p class="section-title">Progression photo</p>
+    <div class="bar-row">
+      <div class="bar-label"><span>${withPhoto} / ${photoTotal} BD photographiées</span><span class="mono">${photoPct}%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${photoPct}%"></div></div>
+    </div>
+    ${missing.length ? `<p class="section-title" style="margin-top:16px;">BD sans photo (${missing.length})</p>` : ""}
+    ${missingHtml}
+    <p class="section-title">Répartition par état (${etatTotal})</p>
+    ${etatBars}
     <p class="section-title">Espace de stockage (photos)</p>
     <div id="storageGauge" style="font-size:12.5px; color:rgba(255,255,255,0.72);">Calcul en cours…</div>
     <p class="section-title">Répartition par série</p>
@@ -1292,6 +1489,9 @@ function renderStats(){
     <p class="section-title">Top raretés (BDM / BD Gest)</p>
     ${rarityRows}
     ${renderCorbeilleSection()}
+    <div style="text-align:center; margin-top:28px;">
+      <button class="link-btn" id="openGuideBtn">Guide de l'application</button>
+    </div>
   `;
 }
 
@@ -1321,7 +1521,10 @@ function renderCorbeilleRows(){
         <div>${r.titre}${r.serie?" · "+r.serie:""}</div>
         <div style="font-size:11px; color:var(--ink-soft);">Supprimé le ${formatDateTime(r.deletedAt)}</div>
       </div>
-      <button class="link-btn" data-restore="${r.num}">Restaurer</button>
+      <div class="trash-actions">
+        <button class="link-btn" data-restore="${r.num}">Restaurer</button>
+        <button class="link-btn trash-purge" data-purge="${r.num}">Vider</button>
+      </div>
     </div>
   `).join("");
   const paraHtml = paraRows.map(p=>`
@@ -1331,7 +1534,10 @@ function renderCorbeilleRows(){
         <div>${(p.objet||p.categorie)}${p.serie?" · "+p.serie:""}</div>
         <div style="font-size:11px; color:var(--ink-soft);">Supprimé le ${formatDateTime(p.deletedAt)}</div>
       </div>
-      <button class="link-btn" data-restorepara="${p.id}">Restaurer</button>
+      <div class="trash-actions">
+        <button class="link-btn" data-restorepara="${p.id}">Restaurer</button>
+        <button class="link-btn trash-purge" data-purgepara="${p.id}">Vider</button>
+      </div>
     </div>
   `).join("");
 
@@ -1413,19 +1619,43 @@ function renderParaItemsList(){
     ${rows}
   `;
 }
+let parabdQuery = "";
+function renderParaSearchResults(){
+  const q = normalizeText(parabdQuery);
+  const results = parabdItems.filter(p=>
+    normalizeText(p.objet||"").includes(q) || normalizeText(p.categorie||"").includes(q) || normalizeText(p.serie||"").includes(q)
+  );
+  const rows = results.map(p=>{
+    const sub = [p.serie, p.categorie, p.annee||"Non renseigné"].join(" · ");
+    return `
+      <div class="card album-row" data-paraitem="${p.id}">
+        <div class="album-main">
+          <div class="album-title">${p.objet || p.categorie}</div>
+          <div class="album-sub">${sub}</div>
+        </div>
+        <div class="val-line mono">${eur(p.cout)}</div>
+      </div>
+    `;
+  }).join("") || `<div class="empty">Aucun résultat.</div>`;
+  return `<div class="count-line">${results.length} résultat${results.length>1?"s":""}</div>${rows}`;
+}
 function renderParabd(){
-  const body = parabdState.level==="series" ? renderParaSeriesList()
+  const body = parabdQuery.trim() ? renderParaSearchResults()
+    : parabdState.level==="series" ? renderParaSeriesList()
     : parabdState.level==="categories" ? renderParaCategoriesList()
     : renderParaItemsList();
   return `
-    <button class="btn-primary" id="paraAddBtn" style="margin-bottom:20px;">+ Ajouter un objet</button>
+    <button class="btn-primary" id="paraAddBtn" style="margin-bottom:16px;">+ Ajouter un objet</button>
+    <div class="search-wrap">
+      <input class="search-input" id="parabdSearch" placeholder="Chercher un objet, une catégorie…" value="${parabdQuery}">
+      ${parabdQuery ? `<button class="clear-search" id="clearParabdSearch">×</button>` : ""}
+    </div>
     ${body}
   `;
 }
 
 let paraDraftId = null;
 function renderParaAddForm(){
-  const etatDatalist = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"].map(e=>`<option value="${e}">`).join("");
   const key = "para"+paraDraftId;
   const photos = PHOTOS[key] || [];
   const photoThumbs = photos.map((src,i)=>`
@@ -1457,8 +1687,10 @@ function renderParaAddForm(){
       </div>
       <div class="field">
         <label>État</label>
-        <input list="pf_etatList" id="pf_etat" placeholder="ex. Très bon état">
-        <datalist id="pf_etatList">${etatDatalist}</datalist>
+        <select id="pf_etat">
+          <option value="">Non renseigné</option>
+          ${ETAT_OPTIONS.map(e=>`<option value="${e}">${e}</option>`).join("")}
+        </select>
       </div>
       <div class="field">
         <label>Éditeur</label>
@@ -1522,27 +1754,42 @@ function bindParaAddEvents(){
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
     const val = id => document.getElementById(id).value.trim();
-    const serie = val("pf_serie"), categorie = val("pf_categorie");
-    if(!serie || !categorie){
+    const serie = val("pf_serie"), categorieTyped = val("pf_categorie");
+    if(!serie || !categorieTyped){
       showAlert("Il faut au moins renseigner la série et la catégorie pour ajouter un objet.");
       return;
     }
-    const cout = parseFloat(val("pf_cout"));
-    const id = paraDraftId;
-    parabdItems.push({
-      id, serie, categorie,
-      objet: val("pf_objet") || null,
-      annee: val("pf_annee") || null,
-      etat: val("pf_etat") || null,
-      editeur: val("pf_editeur") || null,
-      cout: isNaN(cout) ? null : cout,
-      commentaire: val("pf_commentaire") || ""
-    });
-    saveParabd();
-    parabdState = { level:"items", serie, categorie, sort:"add" };
-    closeDetail();
-    render();
-    openParaDetail(id);
+    const finalizeAdd = categorie => {
+      const cout = parseFloat(val("pf_cout"));
+      const id = paraDraftId;
+      parabdItems.push({
+        id, serie, categorie,
+        objet: val("pf_objet") || null,
+        annee: val("pf_annee") || null,
+        etat: val("pf_etat") || null,
+        editeur: val("pf_editeur") || null,
+        cout: isNaN(cout) ? null : cout,
+        commentaire: val("pf_commentaire") || ""
+      });
+      saveParabd();
+      parabdState = { level:"items", serie, categorie, sort:"add" };
+      closeDetail();
+      render();
+      openParaDetail(id);
+    };
+    const found = findSimilarCategory(serie, categorieTyped);
+    if(found && found.exact){
+      finalizeAdd(found.match); // accents/majuscules seulement : rattachement silencieux
+    } else if(found && !found.exact){
+      showChoice(
+        `Une catégorie proche, « ${found.match} », existe déjà pour ${serie}. Veux-tu y placer cet objet ?`,
+        "Oui", "Non, nouvelle catégorie",
+        ()=>finalizeAdd(found.match),
+        ()=>finalizeAdd(categorieTyped)
+      );
+    } else {
+      finalizeAdd(categorieTyped);
+    }
   });
 }
 
@@ -1560,7 +1807,7 @@ function renderParaDetail(){
     <div class="sheet-eyebrow">${p.serie} · ${p.categorie}</div>
     <div class="sheet-title">${p.objet || p.categorie}</div>
     <div class="sheet-meta">${(p.annee||"Non renseigné")+" · "+(p.editeur||"Non renseigné")}</div>
-    <span class="badge" style="background:${etatColor(p.etat)}">${p.etat||"Non renseigné"}</span>
+    <span class="badge" style="background:${etatColor(p.etat)}; color:${etatTextColor(p.etat)};">${p.etat||"Non renseigné"}</span>
     <div class="ledger" style="margin-top:14px; grid-template-columns:1fr;">
       <div><div class="v mono">${eur(p.cout)}</div><div class="l">Coût</div></div>
     </div>
@@ -1635,7 +1882,6 @@ function bindParaDetailEvents(){
    ================================================================ */
 function renderParaEditForm(){
   const p = parabdItems.find(x=>x.id===paraDetailId);
-  const etatDatalist = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"].map(e=>`<option value="${e}">`).join("");
   return `
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
@@ -1662,8 +1908,10 @@ function renderParaEditForm(){
       </div>
       <div class="field">
         <label>État</label>
-        <input list="pef_etatList" id="pef_etat" value="${p.etat||""}">
-        <datalist id="pef_etatList">${etatDatalist}</datalist>
+        <select id="pef_etat">
+          <option value="" ${!p.etat?"selected":""}>Non renseigné</option>
+          ${ETAT_OPTIONS.map(e=>`<option value="${e}" ${p.etat===e?"selected":""}>${e}</option>`).join("")}
+        </select>
       </div>
       <div class="field">
         <label>Éditeur</label>
@@ -1694,27 +1942,42 @@ function bindParaEditFormEvents(){
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
     const val = id => document.getElementById(id).value.trim();
-    const serie = val("pef_serie"), categorie = val("pef_categorie");
-    if(!serie || !categorie){
+    const serie = val("pef_serie"), categorieTyped = val("pef_categorie");
+    if(!serie || !categorieTyped){
       showAlert("Il faut au moins renseigner la série et la catégorie.");
       return;
     }
-    const cout = parseFloat(val("pef_cout"));
-    const fields = {
-      serie, categorie,
-      objet: val("pef_objet") || null,
-      annee: val("pef_annee") || null,
-      etat: val("pef_etat") || null,
-      editeur: val("pef_editeur") || null,
-      cout: isNaN(cout) ? null : cout,
-      commentaire: val("pef_commentaire") || ""
+    const finalizeEdit = categorie => {
+      const cout = parseFloat(val("pef_cout"));
+      const fields = {
+        serie, categorie,
+        objet: val("pef_objet") || null,
+        annee: val("pef_annee") || null,
+        etat: val("pef_etat") || null,
+        editeur: val("pef_editeur") || null,
+        cout: isNaN(cout) ? null : cout,
+        commentaire: val("pef_commentaire") || ""
+      };
+      showConfirm("Enregistrer ces modifications ?", "Enregistrer", ()=>{
+        editParaItem(paraDetailId, fields);
+        document.getElementById("sheet").innerHTML = renderParaDetail();
+        bindParaDetailEvents();
+        render();
+      });
     };
-    showConfirm("Enregistrer ces modifications ?", "Enregistrer", ()=>{
-      editParaItem(paraDetailId, fields);
-      document.getElementById("sheet").innerHTML = renderParaDetail();
-      bindParaDetailEvents();
-      render();
-    });
+    const found = findSimilarCategory(serie, categorieTyped);
+    if(found && found.exact){
+      finalizeEdit(found.match);
+    } else if(found && !found.exact){
+      showChoice(
+        `Une catégorie proche, « ${found.match} », existe déjà pour ${serie}. Veux-tu y placer cet objet ?`,
+        "Oui", "Non, nouvelle catégorie",
+        ()=>finalizeEdit(found.match),
+        ()=>finalizeEdit(categorieTyped)
+      );
+    } else {
+      finalizeEdit(categorieTyped);
+    }
   });
 }
 
@@ -1743,8 +2006,8 @@ function renderSheet(){
     <div class="sheet-eyebrow">${a.serie} · ${a.tome!=="Unique"?"Tome "+a.tome:"Album unique"}</div>
     <div class="sheet-title">${a.titre}</div>
     ${tabs}
-    <div class="sheet-meta">${a.format} · ${ex.editeur||"Non renseigné"} · ${ex.annee||"Non renseigné"} ${ex.eo?"· Édition originale":""}</div>
-    <span class="badge" style="background:${etatColor(ex.etat)}">${ex.etat||"Non renseigné"}</span>
+    <div class="sheet-meta">${a.format} · ${ex.editeur||"Non renseigné"} · ${ex.annee||"Non renseigné"}</div>
+    ${ex.eo ? '<span class="badge eo-badge">EO</span> ' : ''}<span class="badge" style="background:${etatColor(ex.etat)}; color:${etatTextColor(ex.etat)};">${ex.etat||"Non renseigné"}</span>
     <div class="ledger" style="margin-top:14px;">
       <div><div class="v mono">${eur(ex.cout)}</div><div class="l">Coût</div></div>
       <div><div class="v mono">${eur(ex.vente)}</div><div class="l">Vente</div></div>
@@ -1837,7 +2100,6 @@ function bindSheetEvents(){
 function renderEditForm(){
   const a = ALBUMS.find(x=>x.aid===sheetState.aid);
   const ex = a.exemplaires[sheetState.exIndex];
-  const etatDatalist = ["Neuf","Très bon état","Bon état","État moyen","Très mauvais état"].map(e=>`<option value="${e}">`).join("");
   return `
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
@@ -1872,8 +2134,10 @@ function renderEditForm(){
       </div>
       <div class="field">
         <label>État</label>
-        <input list="ef_etatList" id="ef_etat" value="${ex.etat||""}">
-        <datalist id="ef_etatList">${etatDatalist}</datalist>
+        <select id="ef_etat">
+          <option value="" ${!ex.etat?"selected":""}>Non renseigné</option>
+          ${ETAT_OPTIONS.map(e=>`<option value="${e}" ${ex.etat===e?"selected":""}>${e}</option>`).join("")}
+        </select>
       </div>
       <div class="field-row">
         <div class="field"><label>Coût (€)</label><input id="ef_cout" type="number" step="0.01" value="${ex.cout??""}"></div>
@@ -1989,6 +2253,90 @@ function renderVitrineManager(){
     <div id="vitrineResults">${resultsHtml}</div>
   `;
 }
+function renderGuide(){
+  const faq = [
+    {
+      q: "Fonctionnement d'ensemble de l'application",
+      a: `Cette application te permet de cataloguer ta collection de bandes dessinées et tes objets dérivés (fèves, figurines…), avec photos, valeurs et suivi personnalisé. Elle fonctionne entièrement hors-ligne une fois installée sur l'écran d'accueil de ton iPhone : toutes tes données (BD ajoutées, photos, suppressions) sont stockées uniquement sur ton téléphone, jamais envoyées ailleurs. Cinq onglets composent l'application : Étagère, Collection, Ajouter, Para-BD et Statistiques.`
+    },
+    {
+      q: "L'onglet Étagère",
+      a: `Deux façons de visualiser ta collection : par tranches (les séries représentées comme des dos de livres, largeur proportionnelle au nombre d'albums) ou par couvertures (regroupées par série, triées par ordre de tome). L'interrupteur en haut bascule de l'une à l'autre ; revenir sur cet onglet remet toujours la vue par tranches par défaut. En dessous, la section "En vitrine" met en avant 3 albums de ton choix — appuie sur "Gérer" pour changer lesquels, et pour choisir quel exemplaire précis afficher si l'un d'eux est en double.`
+    },
+    {
+      q: "L'onglet Collection",
+      a: `Recherche par titre, série ou éditeur — insensible aux majuscules et aux accents (tape "asterix" retrouve bien "Astérix"). Deux menus déroulants permettent de filtrer par format et de trier (numéro, alphabétique, valeur, côte, tome, ordre de parution, EO d'abord). Les chips en haut filtrent par série. Quand un album existe en plusieurs exemplaires (état différent, par exemple), une seule ligne apparaît avec la mention "en double" ou "en triple" — les détails de chaque exemplaire sont accessibles dans sa fiche. "Non renseigné" indique simplement qu'un champ n'a pas été rempli.`
+    },
+    {
+      q: "L'onglet Ajouter",
+      a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Si la BD que tu ajoutes correspond exactement (série, titre, tome, format) à une déjà présente, elle est automatiquement ajoutée comme exemplaire supplémentaire plutôt que dupliquée.`
+    },
+    {
+      q: "L'onglet Para-BD",
+      a: `Structure à trois niveaux : Série → Catégorie (ex. "Fèves") → Objet (ex. "Bonnemine"). Seuls Série et Catégorie sont obligatoires. Quand tu tapes une catégorie proche d'une déjà existante (accents, majuscules, ou légère faute de frappe), l'application te propose de la rattacher plutôt que d'en créer une nouvelle. Une barre de recherche en haut permet de retrouver un objet directement, tous niveaux confondus.`
+    },
+    {
+      q: "L'onglet Statistiques",
+      a: `Coût total, valeur de vente estimée et côte BDM/BD Gest de ta collection. Progression de tes photos (combien de BD en ont une, et lesquelles n'en ont pas encore). Répartition par état et par série. Top raretés selon la côte. La Corbeille conserve tout ce que tu supprimes (BD comme Para-BD) : "Restaurer" le remet en place, "Vider" l'efface définitivement et sans retour possible.`
+    },
+    {
+      q: "Technicités de l'application",
+      a: `<strong>Où sont stockées tes données</strong><br>
+          Tout ce que tu ajoutes (BD, objets Para-BD, photos, suppressions) est stocké directement sur ton iPhone, dans l'espace réservé à Safari pour cette application — jamais sur un serveur, jamais dans un cloud. Le texte (fiches) et les photos (plus volumineuses) utilisent deux espaces de stockage distincts, les photos ayant beaucoup plus de place disponible.<br><br>
+
+          <strong>Ce qui se passe lors d'une mise à jour de l'application</strong><br>
+          Quand je modifie le code et que tu remplaces le fichier index.html sur GitHub, l'adresse de ton application (https://tonpseudo.github.io/…) ne change pas. Tes données sont rattachées à cette adresse, pas au contenu du fichier — donc à chaque nouvelle version, ton téléphone retrouve automatiquement tout ce que tu avais déjà ajouté, sans aucune manipulation. À chaque changement dans la structure des données (comme l'ajout de la Catégorie dans Para-BD), j'écris aussi du code qui "traduit" tes anciennes données vers le nouveau format.<br><br>
+
+          <strong>Comment exporter une sauvegarde, étape par étape</strong><br>
+          1. Onglet Ajouter → section "Sauvegarde locale" → bouton "Exporter (.json)"<br>
+          2. Le menu de partage natif de l'iPhone s'ouvre : choisis où envoyer le fichier — Mail (te l'envoyer par e-mail), Enregistrer dans Fichiers (le garder sur le téléphone ou iCloud Drive), AirDrop (vers un autre appareil), etc.<br>
+          3. Le fichier s'appelle <em>sauvegarde_bd_vX.Y.Z_JJ-MM-AA.json</em> — le numéro de version de l'appli et la date du jour de l'export.<br><br>
+
+          <strong>Comment importer une sauvegarde, étape par étape</strong><br>
+          1. Assure-toi que le fichier .json est accessible sur le téléphone où tu veux l'importer (transfère-le au préalable si besoin : AirDrop, e-mail, iCloud Drive…)<br>
+          2. Onglet Ajouter → section "Sauvegarde locale" → bouton "Importer"<br>
+          3. Choisis le fichier depuis l'app Fichiers<br>
+          4. Tes BD ajoutées, tes objets Para-BD et tes photos réapparaissent, fusionnés avec ce qui existe déjà sur cet appareil.<br><br>
+
+          <strong>Dans quels cas utiliser l'export/import, concrètement</strong><br>
+          • <u>Tu changes de téléphone</u> : sur l'ancien, exporte une sauvegarde. Sur le nouveau, réinstalle l'application (même lien GitHub, même procédure "Sur l'écran d'accueil"), puis importe le fichier — tu retrouves tout.<br>
+          • <u>Sauvegarde de sécurité "au cas où"</u> : exporte de temps en temps (le rappel dans l'appli t'y aide), garde le fichier en lieu sûr.<br>
+          • <u>Données de Safari vidées par erreur, ou icône supprimée puis réinstallée</u> : importe ta dernière sauvegarde pour tout récupérer.<br>
+          • <u>Ce qu'il ne faut PAS faire</u> : réimporter une sauvegarde après une mise à jour du code — inutile, c'est déjà automatique. Et attention : une sauvegarde ancienne ne peut jamais annuler une suppression faite depuis (l'import ajoute, il ne supprime jamais) — pour récupérer une BD supprimée par erreur, va dans la Corbeille (onglet Stats), pas dans une vieille sauvegarde.<br><br>
+
+          <strong>Ce que contient (et ne contient pas) une sauvegarde</strong><br>
+          Contenu : tes BD ajoutées, tes objets Para-BD (et leurs corbeilles respectives), toutes tes photos. Non inclus : les 150 BD de la collection de base, écrites directement dans le code de l'application — donc toujours présentes automatiquement, sur n'importe quel appareil, sans avoir besoin d'être sauvegardées.<br><br>
+
+          <strong>Espace de stockage disponible</strong><br>
+          Les photos sont compressées automatiquement avant d'être enregistrées, pour en tenir beaucoup plus dans le même espace. L'onglet Statistiques affiche une jauge en temps réel de l'espace utilisé et restant sur ton téléphone, avec une estimation du nombre de photos qu'il te reste avant d'atteindre la limite réelle de ton appareil.<br><br>
+
+          <strong>Limites à connaître</strong><br>
+          • Pas de vraie notification système : le rappel de sauvegarde n'apparaît qu'en ouvrant l'application (une page web sans serveur ne peut pas envoyer d'alerte sur un écran verrouillé).<br>
+          • Pas de synchronisation entre appareils : ouvrir l'application sur un autre téléphone ou un ordinateur démarre "vide" (juste la base de 150 BD) tant que tu n'as pas importé une sauvegarde.<br>
+          • Une photo ajoutée dans l'application est une copie indépendante de celle de ta pellicule : la supprimer d'un côté ne l'efface pas de l'autre.<br>
+          • Si Safari vide un jour les données d'un site inutilisé depuis très longtemps (rare pour une appli sur écran d'accueil, mais possible), tout ce qui n'a pas été exporté serait perdu.`
+    }
+  ];
+  const items = faq.map(item=>`
+    <details class="faq-item">
+      <summary>${item.q}</summary>
+      <p>${item.a}</p>
+    </details>
+  `).join("");
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">Aide</div>
+    <div class="sheet-title">Guide de l'application</div>
+    ${items}
+    <p class="guide-credit">Cette application a été conçue par Antoine BILLARD, avec l'aide de Claude (Anthropic).<br>Version ${APP_VERSION} — ${APP_VERSION_DATE}</p>
+  `;
+}
+function openGuide(){
+  document.getElementById("sheet").innerHTML = renderGuide();
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+}
 function openVitrineManager(){
   vitrineQuery = "";
   document.getElementById("sheet").innerHTML = renderVitrineManager();
@@ -2047,7 +2395,7 @@ const HEADERS = {
   collection: ()=>["Collection", "Recherche et filtres"],
   ajouter: ()=>["Ajouter une BD", "Elle sera classée automatiquement"],
   parabd: ()=>["Para-BD", parabdItems.length+" objet"+(parabdItems.length>1?"s":"")],
-  stats: ()=>["Statistiques", "Bilan de la collection"]
+  stats: ()=>["Statistiques", "Version "+APP_VERSION]
 };
 
 function render(){
@@ -2073,6 +2421,12 @@ function render(){
   });
   const manageVitrineBtn = document.getElementById("manageVitrineBtn");
   if(manageVitrineBtn) manageVitrineBtn.addEventListener("click", openVitrineManager);
+  const openGuideBtn = document.getElementById("openGuideBtn");
+  if(openGuideBtn) openGuideBtn.addEventListener("click", openGuide);
+  const reminderExportBtn = document.getElementById("reminderExportBtn");
+  if(reminderExportBtn) reminderExportBtn.addEventListener("click", exportBackup);
+  const reminderDismissBtn = document.getElementById("reminderDismissBtn");
+  if(reminderDismissBtn) reminderDismissBtn.addEventListener("click", ()=>{ dismissReminder(); render(); });
   const coverToggle = document.getElementById("coverToggle");
   if(coverToggle) coverToggle.addEventListener("change", e=>{ state.shelfCovers = e.target.checked; render(); });
   document.querySelectorAll(".chip").forEach(el=>{
@@ -2083,6 +2437,8 @@ function render(){
   bindClearSearch();
   const sortSelect = document.getElementById("sortSelect");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
+  const formatFilterSelect = document.getElementById("formatFilterSelect");
+  if(formatFilterSelect) formatFilterSelect.addEventListener("change", e=>{ state.filterFormat = e.target.value || null; render(); });
   const addForm = document.getElementById("addForm");
   if(addForm){
     addForm.addEventListener("submit", handleAddSubmit);
@@ -2113,7 +2469,29 @@ function render(){
   if(paraSortSelect) paraSortSelect.addEventListener("change", e=>{ parabdState.sort = e.target.value; render(); });
   const paraAddBtn = document.getElementById("paraAddBtn");
   if(paraAddBtn) paraAddBtn.addEventListener("click", openParaAdd);
+  bindParabdSearch();
   bindTrashSearch();
+}
+function bindParabdSearch(){
+  const searchBox = document.getElementById("parabdSearch");
+  if(searchBox){
+    searchBox.addEventListener("input", e=>{
+      parabdQuery = e.target.value;
+      const caret = searchBox.selectionStart;
+      const main = document.getElementById("main");
+      main.innerHTML = renderParabd();
+      document.querySelectorAll("[data-paraitem]").forEach(el=>{
+        el.addEventListener("click", ()=>openParaDetail(el.dataset.paraitem));
+      });
+      bindParabdSearch();
+      const paraAddBtn2 = document.getElementById("paraAddBtn");
+      if(paraAddBtn2) paraAddBtn2.addEventListener("click", openParaAdd);
+      const nb = document.getElementById("parabdSearch");
+      if(nb){ nb.focus(); nb.setSelectionRange(caret, caret); }
+    });
+  }
+  const clearBtn = document.getElementById("clearParabdSearch");
+  if(clearBtn) clearBtn.addEventListener("click", ()=>{ parabdQuery=""; render(); });
 }
 function bindTrashSearch(){
   document.querySelectorAll("[data-restore]").forEach(el=>{
@@ -2121,6 +2499,24 @@ function bindTrashSearch(){
   });
   document.querySelectorAll("[data-restorepara]").forEach(el=>{
     el.addEventListener("click", ()=>{ restoreParaItem(Number(el.dataset.restorepara)); render(); });
+  });
+  document.querySelectorAll("[data-purge]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const num = Number(el.dataset.purge);
+      showConfirm("Supprimer définitivement cet élément de la corbeille ? Impossible de revenir en arrière ensuite.", "Vider", async ()=>{
+        await purgeBdTrash(num);
+        render();
+      });
+    });
+  });
+  document.querySelectorAll("[data-purgepara]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const id = Number(el.dataset.purgepara);
+      showConfirm("Supprimer définitivement cet élément de la corbeille ? Impossible de revenir en arrière ensuite.", "Vider", async ()=>{
+        await purgeParaItem(id);
+        render();
+      });
+    });
   });
   const trashSearch = document.getElementById("trashSearch");
   if(trashSearch){
@@ -2151,6 +2547,8 @@ function renderPartialCollection(){
   document.querySelectorAll(".chip").forEach(el=> el.addEventListener("click", ()=>{ state.filterSerie = el.dataset.chip || null; render(); }));
   const sortSelect = document.getElementById("sortSelect");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
+  const formatFilterSelect = document.getElementById("formatFilterSelect");
+  if(formatFilterSelect) formatFilterSelect.addEventListener("change", e=>{ state.filterFormat = e.target.value || null; render(); });
   bindClearSearch();
   const newBox = document.getElementById("searchBox");
   if(newBox){
@@ -2164,8 +2562,11 @@ function renderPartialCollection(){
 document.querySelectorAll("nav.tabbar button").forEach(b=>{
   b.addEventListener("click", ()=>{
     state.tab = b.dataset.tab;
-    if(state.tab==="parabd") parabdState = { level:"series", serie:null, categorie:null, sort:"add" };
+    if(state.tab==="shelf"){ state.shelfCovers = false; }
+    if(state.tab==="parabd"){ parabdState = { level:"series", serie:null, categorie:null, sort:"add" }; parabdQuery=""; }
     render();
+    const appEl = document.getElementById("app");
+    if(appEl) appEl.scrollTop = 0;
   });
 });
 document.getElementById("backdrop").addEventListener("click", closeDetail);
