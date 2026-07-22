@@ -26,6 +26,20 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  #insuranceDoc{ display:none; }
+  @media print{
+    html, body{ height:auto !important; overflow:visible !important; position:static !important; }
+    #app, .lightbox-overlay, .sheet, .sheet-backdrop, .bg-fixed{ display:none !important; }
+    body > *:not(#insuranceDoc){ display:none !important; }
+    #insuranceDoc{ display:block !important; position:static; background:#fff; color:#111; padding:0; font-family:-apple-system,Helvetica,Arial,sans-serif; }
+    #insuranceDoc h1{ font-size:20px; margin:0 0 4px; }
+    #insuranceDoc h2{ font-size:14px; margin:22px 0 8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+    #insuranceDoc .meta{ font-size:12px; color:#555; margin-bottom:16px; }
+    #insuranceDoc table{ width:100%; border-collapse:collapse; font-size:11px; }
+    #insuranceDoc th, #insuranceDoc td{ text-align:left; padding:4px 6px; border-bottom:1px solid #ddd; }
+    #insuranceDoc tr{ page-break-inside:avoid; }
+    #insuranceDoc .totals{ display:flex; gap:24px; font-size:13px; margin-bottom:10px; }
+  }
   html,body{ height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none; }
   body{
     margin:0;
@@ -294,6 +308,7 @@
 <div class="sheet-backdrop" id="backdrop"></div>
 <div class="sheet" id="sheet"></div>
 <div class="lightbox-overlay" id="lightboxOverlay"></div>
+<div id="insuranceDoc"></div>
 
 <script>
 /* ================================================================
@@ -509,6 +524,7 @@ function normalizeParaItem(p){
     serie: p.serie,
     categorie: p.categorie ?? p.objet ?? "Non renseigné",
     objet: p.categorie ? (p.objet ?? null) : null,
+    collection: p.collection ?? null,
     annee: p.annee ?? p.date ?? null,
     etat: p.etat ?? null,
     editeur: p.editeur ?? null,
@@ -687,7 +703,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.5"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
+const APP_VERSION = "1.2.8"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
 const APP_VERSION_DATE = "19/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -1046,8 +1062,7 @@ function levenshtein(a, b){
 }
 // Cherche une catégorie déjà existante (pour cette série) proche de celle tapée.
 // Retourne {match, exact:true} pour une correspondance accents/majuscules près, {match, exact:false} pour une orthographe proche (faute de frappe probable), ou null si rien de proche.
-function findSimilarCategory(serie, typed){
-  const existing = distinctValues(paraItemsFor(serie).map(p=>p.categorie));
+function findSimilarIn(existing, typed){
   const normTyped = normalizeText(typed);
   const exact = existing.find(c=>normalizeText(c)===normTyped);
   if(exact) return { match:exact, exact:true };
@@ -1060,6 +1075,14 @@ function findSimilarCategory(serie, typed){
   const threshold = Math.max(1, Math.floor(Math.max(normTyped.length, normalizeText(best).length) * 0.3));
   if(bestDist>0 && bestDist<=threshold) return { match:best, exact:false };
   return null;
+}
+function findSimilarCategory(serie, typed){
+  const existing = distinctValues(paraItemsFor(serie).map(p=>p.categorie));
+  return findSimilarIn(existing, typed);
+}
+function findSimilarCollection(serie, categorie, typed){
+  const existing = distinctValues(parabdItems.filter(p=>p.serie===serie && p.categorie===categorie).map(p=>p.collection));
+  return findSimilarIn(existing, typed);
 }
 function distinctValues(list){ return [...new Set(list.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")); }
 function distinctSeries(){ return distinctValues(OWNED.map(a=>a.serie)); }
@@ -1106,8 +1129,8 @@ function attachCombo(inputId, listId, getOptions){
 /* ================================================================
    ÉTAT DE L'INTERFACE
    ================================================================ */
-let state = { tab:"shelf", query:"", filterSerie:null, filterFormat:null, sort:"num", shelfCovers:false };
-let parabdState = { level:"series", serie:null, categorie:null, sort:"add" };
+let state = { tab:"shelf", query:"", filterSerie:null, filterFormat:null, filterEtat:null, sort:"num", shelfCovers:false };
+let parabdState = { level:"series", serie:null, categorie:null, collection:null, sort:"add" };
 let sheetState = { aid:null, exIndex:0 };
 
 /* ================================================================
@@ -1211,6 +1234,7 @@ function renderCollection(){
   let list = OWNED.slice();
   if(state.filterSerie) list = list.filter(a=>a.serie===state.filterSerie);
   if(state.filterFormat) list = list.filter(a=>formatBase(a.format)===state.filterFormat);
+  if(state.filterEtat) list = list.filter(a=>a.exemplaires.some(e=>e.etat===state.filterEtat));
   if(state.query){
     const q = normalizeText(state.query);
     list = list.filter(a=>{
@@ -1275,6 +1299,7 @@ function renderCollection(){
   const sortOptions = {num:"Numéro", alpha:"Alphabétique", vente:"Valeur", cote:"Côte", eo:"EO d'abord", tome:"Tome", parution:"Ordre de parution"};
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${state.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
   const formatOpts = distinctFormatBases(state.filterSerie).map(f=>`<option value="${f}" ${state.filterFormat===f?"selected":""}>${f}</option>`).join("");
+  const etatOpts = ETAT_OPTIONS.map(e=>`<option value="${e}" ${state.filterEtat===e?"selected":""}>${e}</option>`).join("");
 
   return `
     <div class="search-wrap">
@@ -1283,12 +1308,18 @@ function renderCollection(){
     </div>
     <div class="chip-row">${chips}</div>
     <div class="count-line">${list.length} album${list.length>1?'s':''}</div>
-    <div class="row-between" style="gap:8px; margin-bottom:14px;">
+    <div class="row-between" style="gap:8px; margin-bottom:8px;">
       <select class="sort-select" id="formatFilterSelect" style="flex:1; min-width:0;">
         <option value="">Tous les formats</option>
         ${formatOpts}
       </select>
-      <select class="sort-select" id="sortSelect" style="flex:1; min-width:0;">${sortOpts}</select>
+      <select class="sort-select" id="etatFilterSelect" style="flex:1; min-width:0;">
+        <option value="">Tous les états</option>
+        ${etatOpts}
+      </select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <select class="sort-select" id="sortSelect" style="width:100%;">${sortOpts}</select>
     </div>
     ${rows}
   `;
@@ -1363,7 +1394,53 @@ function renderAjouter(){
       </label>
     </div>
     <div class="form-msg" id="backupMsg"></div>
+    <button type="button" class="btn-secondary" id="insuranceBtn" style="width:100%; margin-top:10px;">📄 Fiche assurance (PDF)</button>
+    <p style="font-size:11.5px; color:rgba(255,255,255,0.65); margin:8px 2px 0; line-height:1.4;">
+      Génère un inventaire complet avec valeurs estimées, à imprimer ou enregistrer en PDF — utile pour une déclaration d'assurance.
+    </p>
   `;
+}
+
+function openInsuranceDoc(){
+  const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
+  const totalVente = OWNED.reduce((s,a)=>s+albumTotalVente(a),0);
+  const totalCote = OWNED.flatMap(a=>a.exemplaires).map(e=>parseCote(e.cote)).filter(v=>v!==null).reduce((s,v)=>s+v,0);
+  const bdRows = OWNED.flatMap(a=>a.exemplaires.map(ex=>`
+    <tr>
+      <td>${a.serie}</td><td>${a.titre}</td><td>${a.tome}</td><td>${a.format}</td>
+      <td>${ex.etat||"—"}</td><td>${eur(ex.vente)}</td><td>${coteDisplay(ex.cote)}</td>
+    </tr>
+  `)).join("");
+  const paraCout = parabdItems.reduce((s,p)=>s+(p.cout||0),0);
+  const paraRows = parabdItems.map(p=>`
+    <tr>
+      <td>${p.serie}</td><td>${p.categorie}</td><td>${p.objet||"—"}</td>
+      <td>${p.etat||"—"}</td><td>${eur(p.cout)}</td>
+    </tr>
+  `).join("");
+  const now = new Date();
+  document.getElementById("insuranceDoc").innerHTML = `
+    <h1>Fiche d'assurance — Collection de Bandes Dessinées</h1>
+    <p class="meta">Propriétaire : Antoine BILLARD · Document généré le ${formatDateTime(now.toISOString())}</p>
+    <div class="totals">
+      <span><strong>${eur(totalCout)}</strong> coût total</span>
+      <span><strong>${eur(totalVente)}</strong> valeur de vente estimée</span>
+      <span><strong>${eur(totalCote)}</strong> côte BDM/BD Gest</span>
+    </div>
+    <h2>Bandes dessinées (${OWNED.reduce((s,a)=>s+a.exemplaires.length,0)} exemplaires)</h2>
+    <table>
+      <thead><tr><th>Série</th><th>Titre</th><th>Tome</th><th>Format</th><th>État</th><th>Valeur</th><th>Côte</th></tr></thead>
+      <tbody>${bdRows}</tbody>
+    </table>
+    ${parabdItems.length ? `
+      <h2>Objets Para-BD (${parabdItems.length}) — ${eur(paraCout)} coût total</h2>
+      <table>
+        <thead><tr><th>Série</th><th>Catégorie</th><th>Objet</th><th>État</th><th>Coût</th></tr></thead>
+        <tbody>${paraRows}</tbody>
+      </table>
+    ` : ""}
+  `;
+  window.print();
 }
 
 async function exportBackup(){
@@ -1479,6 +1556,27 @@ function photoProgress(){
   const missing = allEx.filter(e=>!(PHOTOS[e.key]||[]).length);
   return { total: allEx.length, withPhoto: allEx.length-missing.length, missing };
 }
+function photoProgressPara(){
+  const missing = parabdItems.filter(p=>!(PHOTOS["para"+p.id]||[]).length);
+  return { total: parabdItems.length, withPhoto: parabdItems.length-missing.length, missing };
+}
+// Ne regarde que le format "Classique" : les Intégrales/Fac-similés ont leur propre numérotation, pas censée être continue.
+function detectMissingTomes(){
+  const results = [];
+  const seriesNames = [...new Set(OWNED.filter(a=>formatBase(a.format)==="Classique").map(a=>a.serie))];
+  seriesNames.forEach(serie=>{
+    const tomes = OWNED
+      .filter(a=>a.serie===serie && formatBase(a.format)==="Classique")
+      .map(a=>parseInt(a.tome,10)).filter(n=>!isNaN(n));
+    if(tomes.length<2) return;
+    const min = Math.min(...tomes), max = Math.max(...tomes);
+    const have = new Set(tomes);
+    const missing = [];
+    for(let i=min;i<=max;i++) if(!have.has(i)) missing.push(i);
+    if(missing.length) results.push({ serie, missing });
+  });
+  return results.sort((a,b)=>a.serie.localeCompare(b.serie,"fr"));
+}
 
 function renderStats(){
   const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
@@ -1511,6 +1609,9 @@ function renderStats(){
     </div>
   `).join("") : `<p style="font-size:13px; color:rgba(255,255,255,0.75); margin:0;">Toutes les BD ont au moins une photo !</p>`;
 
+  const paraPhoto = photoProgressPara();
+  const paraPhotoPct = paraPhoto.total ? Math.round(paraPhoto.withPhoto/paraPhoto.total*100) : 0;
+
   const etatCounts = ETAT_OPTIONS.map(e=>({
     etat: e,
     count: OWNED.reduce((s,a)=>s+a.exemplaires.filter(ex=>ex.etat===e).length, 0)
@@ -1524,6 +1625,26 @@ function renderStats(){
     </div>
   `).join("");
 
+  const serieValues = SERIE_COUNTS.map(s=>({
+    serie: s.serie,
+    value: OWNED.filter(a=>a.serie===s.serie).reduce((sum,a)=>sum+albumTotalVente(a),0)
+  })).sort((a,b)=>b.value-a.value);
+  const serieValueMax = Math.max(...serieValues.map(s=>s.value), 1);
+  const serieValueBars = serieValues.slice(0,12).map(s=>`
+    <div class="bar-row">
+      <div class="bar-label"><span>${s.serie}</span><span class="mono">${eur(s.value)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(s.value/serieValueMax*100).toFixed(0)}%; background:var(--gold);"></div></div>
+    </div>
+  `).join("");
+
+  const missingTomes = detectMissingTomes();
+  const missingTomesSection = missingTomes.length ? `
+    <details class="faq-item" style="margin-top:20px;">
+      <summary>Tomes manquants détectés (${missingTomes.length} série${missingTomes.length>1?"s":""})</summary>
+      <p>${missingTomes.map(m=>`<strong>${m.serie}</strong> : tome${m.missing.length>1?"s":""} ${m.missing.join(", ")}`).join("<br>")}</p>
+    </details>
+  ` : "";
+
   return `
     <div class="mini-stats">
       <div class="card mini-stat"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût total</div></div>
@@ -1535,6 +1656,12 @@ function renderStats(){
       <div class="bar-label"><span>${withPhoto} / ${photoTotal} BD photographiées</span><span class="mono">${photoPct}%</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${photoPct}%"></div></div>
     </div>
+    ${paraPhoto.total ? `
+      <div class="bar-row" style="margin-top:6px;">
+        <div class="bar-label"><span>${paraPhoto.withPhoto} / ${paraPhoto.total} objets Para-BD photographiés</span><span class="mono">${paraPhotoPct}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${paraPhotoPct}%"></div></div>
+      </div>
+    ` : ""}
     ${missing.length ? `<p class="section-title" style="margin-top:16px;">BD sans photo (${missing.length})</p>` : ""}
     ${missingHtml}
     <p class="section-title">Répartition par état (${etatTotal})</p>
@@ -1543,7 +1670,10 @@ function renderStats(){
     <div id="storageGauge" style="font-size:12.5px; color:rgba(255,255,255,0.72);">Calcul en cours…</div>
     <p class="section-title">Répartition par série</p>
     ${bars}
-    <p class="section-title">Top raretés (BDM / BD Gest)</p>
+    <p class="section-title">Valeur par série (vente)</p>
+    ${serieValueBars}
+    ${missingTomesSection}
+    <p class="section-title" style="margin-top:20px;">Top raretés (BDM / BD Gest)</p>
     ${rarityRows}
     ${renderCorbeilleSection()}
     <div style="text-align:center; margin-top:28px;">
@@ -1645,8 +1775,39 @@ function renderParaCategoriesList(){
     ${rows}
   `;
 }
+function renderParaItemRow(p){
+  const sub = [p.annee||"Non renseigné", p.etat||"Non renseigné", p.editeur||"Non renseigné"].join(" · ");
+  return `
+    <div class="card album-row" data-paraitem="${p.id}">
+      <div class="album-main">
+        <div class="album-title">${p.objet || "Non renseigné"}</div>
+        <div class="album-sub">${sub}${p.commentaire ? " · "+p.commentaire : ""}</div>
+      </div>
+      <div class="val-line mono">${eur(p.cout)}</div>
+    </div>
+  `;
+}
 function renderParaItemsList(){
-  let items = paraItemsForCategorie(parabdState.serie, parabdState.categorie).slice();
+  const allItems = paraItemsForCategorie(parabdState.serie, parabdState.categorie);
+  const collected = allItems.filter(p=>p.collection);
+  const uncollected = allItems.filter(p=>!p.collection);
+
+  const collectionNames = distinctValues(collected.map(p=>p.collection));
+  const collectionRows = collectionNames.map(colName=>{
+    const itemsInCol = collected.filter(p=>p.collection===colName);
+    const annee = itemsInCol[0].annee || "Non renseigné";
+    return `
+      <div class="card album-row" data-paracollection="${colName}">
+        <div class="album-main">
+          <div class="album-title">Collection ${colName}</div>
+          <div class="album-sub">${annee} · ${itemsInCol.length} objet${itemsInCol.length>1?"s":""}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>
+    `;
+  }).join("");
+
+  let items = uncollected.slice();
   if(parabdState.sort==="add") items.sort((a,b)=>b.id-a.id);
   if(parabdState.sort==="annee") items.sort((a,b)=>(b.annee||"").localeCompare(a.annee||""));
   if(parabdState.sort==="etat") items.sort((a,b)=>(a.etat||"").localeCompare(b.etat||"","fr"));
@@ -1654,18 +1815,8 @@ function renderParaItemsList(){
   const sortOptions = {add:"Ordre d'ajout", annee:"Année", etat:"État"};
   const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${parabdState.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
 
-  const rows = items.map(p=>{
-    const sub = [p.annee||"Non renseigné", p.etat||"Non renseigné", p.editeur||"Non renseigné"].join(" · ");
-    return `
-      <div class="card album-row" data-paraitem="${p.id}">
-        <div class="album-main">
-          <div class="album-title">${p.objet || "Non renseigné"}</div>
-          <div class="album-sub">${sub}${p.commentaire ? " · "+p.commentaire : ""}</div>
-        </div>
-        <div class="val-line mono">${eur(p.cout)}</div>
-      </div>
-    `;
-  }).join("") || `<div class="empty">Aucun objet.</div>`;
+  const itemRows = items.map(renderParaItemRow).join("");
+  const rows = (collectionRows + itemRows) || `<div class="empty">Aucun objet.</div>`;
 
   return `
     <button class="back-btn" id="paraBackToCategories">‹ ${parabdState.serie}</button>
@@ -1676,14 +1827,34 @@ function renderParaItemsList(){
     ${rows}
   `;
 }
+function renderParaCollectionItemsList(){
+  let items = parabdItems.filter(p=>p.serie===parabdState.serie && p.categorie===parabdState.categorie && p.collection===parabdState.collection).slice();
+  if(parabdState.sort==="add") items.sort((a,b)=>b.id-a.id);
+  if(parabdState.sort==="annee") items.sort((a,b)=>(b.annee||"").localeCompare(a.annee||""));
+  if(parabdState.sort==="etat") items.sort((a,b)=>(a.etat||"").localeCompare(b.etat||"","fr"));
+
+  const sortOptions = {add:"Ordre d'ajout", annee:"Année", etat:"État"};
+  const sortOpts = Object.keys(sortOptions).map(k=>`<option value="${k}" ${parabdState.sort===k?"selected":""}>${sortOptions[k]}</option>`).join("");
+
+  const rows = items.map(renderParaItemRow).join("") || `<div class="empty">Aucun objet.</div>`;
+
+  return `
+    <button class="back-btn" id="paraBackToItems">‹ ${parabdState.categorie}</button>
+    <div class="row-between" style="margin:14px 2px 12px;">
+      <p class="section-title" style="margin:0;">Collection ${parabdState.collection}</p>
+      <select class="sort-select" id="paraSortSelect">${sortOpts}</select>
+    </div>
+    ${rows}
+  `;
+}
 let parabdQuery = "";
 function renderParaSearchResults(){
   const q = normalizeText(parabdQuery);
   const results = parabdItems.filter(p=>
-    normalizeText(p.objet||"").includes(q) || normalizeText(p.categorie||"").includes(q) || normalizeText(p.serie||"").includes(q)
+    normalizeText(p.objet||"").includes(q) || normalizeText(p.categorie||"").includes(q) || normalizeText(p.serie||"").includes(q) || normalizeText(p.collection||"").includes(q)
   );
   const rows = results.map(p=>{
-    const sub = [p.serie, p.categorie, p.annee||"Non renseigné"].join(" · ");
+    const sub = [p.serie, p.categorie, p.collection ? "Collection "+p.collection : null, p.annee||"Non renseigné"].filter(Boolean).join(" · ");
     return `
       <div class="card album-row" data-paraitem="${p.id}">
         <div class="album-main">
@@ -1700,6 +1871,7 @@ function renderParabd(){
   const body = parabdQuery.trim() ? renderParaSearchResults()
     : parabdState.level==="series" ? renderParaSeriesList()
     : parabdState.level==="categories" ? renderParaCategoriesList()
+    : parabdState.level==="collectionItems" ? renderParaCollectionItemsList()
     : renderParaItemsList();
   return `
     <button class="btn-primary" id="paraAddBtn" style="margin-bottom:16px;">+ Ajouter un objet</button>
@@ -1712,12 +1884,14 @@ function renderParabd(){
 }
 
 let paraDraftId = null;
-function renderParaAddForm(){
+function renderParaDraftPhotoThumbs(){
   const key = "para"+paraDraftId;
   const photos = PHOTOS[key] || [];
-  const photoThumbs = photos.map((src,i)=>`
+  return photos.map((src,i)=>`
     <div class="photo-thumb"><img src="${src}"><button type="button" class="photo-del" data-delparadraftphoto="${i}">×</button></div>
   `).join("");
+}
+function renderParaAddForm(){
   return `
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
@@ -1737,6 +1911,11 @@ function renderParaAddForm(){
       <div class="field">
         <label>Objet</label>
         <input id="pf_objet" placeholder="ex. Bonnemine" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Collection</label>
+        <input id="pf_collection" placeholder="ex. Pasquier" autocomplete="off">
+        <div class="combo-list" id="combo_pf_collection"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Année</label><input id="pf_annee" placeholder="ex. 1996"></div>
@@ -1759,7 +1938,7 @@ function renderParaAddForm(){
         <textarea id="pf_commentaire" placeholder="Particularités, provenance…"></textarea>
       </div>
       <p class="photos-title">Photos</p>
-      <div class="photo-strip">${photoThumbs}</div>
+      <div class="photo-strip" id="paraDraftPhotoStrip">${renderParaDraftPhotoThumbs()}</div>
       <label class="add-photo-btn">
         + Ajouter une photo
         <input type="file" accept="image/*" multiple id="paraDraftPhotoInput" style="display:none;">
@@ -1777,6 +1956,17 @@ function openParaAdd(){
   document.getElementById("backdrop").classList.add("open");
   bindParaAddEvents();
 }
+function bindParaDraftPhotoDelete(){
+  document.querySelectorAll("[data-delparadraftphoto]").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const key = "para"+paraDraftId;
+      PHOTOS[key].splice(Number(el.dataset.delparadraftphoto), 1);
+      await idbSavePhotosFor(key);
+      document.getElementById("paraDraftPhotoStrip").innerHTML = renderParaDraftPhotoThumbs();
+      bindParaDraftPhotoDelete();
+    });
+  });
+}
 function bindParaAddEvents(){
   attachCombo("pf_serie", "combo_pf_serie", ()=>distinctValues([...distinctParaSeries(), ...SERIES]));
   attachCombo("pf_categorie", "combo_pf_categorie", ()=>{
@@ -1784,6 +1974,11 @@ function bindParaAddEvents(){
     return distinctValues(paraItemsFor(serie).map(p=>p.categorie));
   });
   attachCombo("pf_editeur", "combo_pf_editeur", distinctParaEditeurs);
+  attachCombo("pf_collection", "combo_pf_collection", ()=>{
+    const serie = document.getElementById("pf_serie").value;
+    const categorie = document.getElementById("pf_categorie").value;
+    return distinctValues(parabdItems.filter(p=>p.serie===serie && p.categorie===categorie).map(p=>p.collection));
+  });
   const draftPhotoInput = document.getElementById("paraDraftPhotoInput");
   if(draftPhotoInput){
     draftPhotoInput.addEventListener("change", async e=>{
@@ -1794,19 +1989,11 @@ function bindParaAddEvents(){
       if(!PHOTOS[key]) PHOTOS[key] = [];
       compressed.filter(Boolean).forEach(src=>PHOTOS[key].push(src));
       await idbSavePhotosFor(key);
-      document.getElementById("sheet").innerHTML = renderParaAddForm();
-      bindParaAddEvents();
+      document.getElementById("paraDraftPhotoStrip").innerHTML = renderParaDraftPhotoThumbs();
+      bindParaDraftPhotoDelete();
     });
   }
-  document.querySelectorAll("[data-delparadraftphoto]").forEach(el=>{
-    el.addEventListener("click", async ()=>{
-      const key = "para"+paraDraftId;
-      PHOTOS[key].splice(Number(el.dataset.delparadraftphoto), 1);
-      await idbSavePhotosFor(key);
-      document.getElementById("sheet").innerHTML = renderParaAddForm();
-      bindParaAddEvents();
-    });
-  });
+  bindParaDraftPhotoDelete();
   const form = document.getElementById("paraAddForm");
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
@@ -1816,11 +2003,11 @@ function bindParaAddEvents(){
       showAlert("Il faut au moins renseigner la série et la catégorie pour ajouter un objet.");
       return;
     }
-    const finalizeAdd = categorie => {
+    const finalizeAdd = (categorie, collection) => {
       const cout = parseFloat(val("pf_cout"));
       const id = paraDraftId;
       parabdItems.push({
-        id, serie, categorie,
+        id, serie, categorie, collection,
         objet: val("pf_objet") || null,
         annee: val("pf_annee") || null,
         etat: val("pf_etat") || null,
@@ -1829,23 +2016,40 @@ function bindParaAddEvents(){
         commentaire: val("pf_commentaire") || ""
       });
       saveParabd();
-      parabdState = { level:"items", serie, categorie, sort:"add" };
+      parabdState = { level:"items", serie, categorie, collection:null, sort:"add" };
       closeDetail();
       render();
       openParaDetail(id);
     };
+    const resolveCollectionAndFinalize = categorie => {
+      const collectionTyped = val("pf_collection");
+      if(!collectionTyped){ finalizeAdd(categorie, null); return; }
+      const foundCol = findSimilarCollection(serie, categorie, collectionTyped);
+      if(foundCol && foundCol.exact){
+        finalizeAdd(categorie, foundCol.match);
+      } else if(foundCol && !foundCol.exact){
+        showChoice(
+          `Une collection proche, « ${foundCol.match} », existe déjà pour ${serie} / ${categorie}. Veux-tu y placer cet objet ?`,
+          "Oui", "Non, nouvelle collection",
+          ()=>finalizeAdd(categorie, foundCol.match),
+          ()=>finalizeAdd(categorie, collectionTyped)
+        );
+      } else {
+        finalizeAdd(categorie, collectionTyped);
+      }
+    };
     const found = findSimilarCategory(serie, categorieTyped);
     if(found && found.exact){
-      finalizeAdd(found.match); // accents/majuscules seulement : rattachement silencieux
+      resolveCollectionAndFinalize(found.match); // accents/majuscules seulement : rattachement silencieux
     } else if(found && !found.exact){
       showChoice(
         `Une catégorie proche, « ${found.match} », existe déjà pour ${serie}. Veux-tu y placer cet objet ?`,
         "Oui", "Non, nouvelle catégorie",
-        ()=>finalizeAdd(found.match),
-        ()=>finalizeAdd(categorieTyped)
+        ()=>resolveCollectionAndFinalize(found.match),
+        ()=>resolveCollectionAndFinalize(categorieTyped)
       );
     } else {
-      finalizeAdd(categorieTyped);
+      resolveCollectionAndFinalize(categorieTyped);
     }
   });
 }
@@ -1861,7 +2065,7 @@ function renderParaDetail(){
   return `
     <button class="close-x" id="closeSheet">&times;</button>
     <div class="sheet-handle"></div>
-    <div class="sheet-eyebrow">${p.serie} · ${p.categorie}</div>
+    <div class="sheet-eyebrow">${p.serie} · ${p.categorie}${p.collection ? " · Collection "+p.collection : ""}</div>
     <div class="sheet-title">${p.objet || p.categorie}</div>
     <div class="sheet-meta">${(p.annee||"Non renseigné")+" · "+(p.editeur||"Non renseigné")}</div>
     <span class="badge" style="background:${etatColor(p.etat)}; color:${etatTextColor(p.etat)};">${p.etat||"Non renseigné"}</span>
@@ -1961,6 +2165,11 @@ function renderParaEditForm(){
         <label>Objet</label>
         <input id="pef_objet" value="${p.objet||""}" autocomplete="off">
       </div>
+      <div class="field">
+        <label>Collection</label>
+        <input id="pef_collection" value="${p.collection||""}" autocomplete="off">
+        <div class="combo-list" id="combo_pef_collection"></div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Année</label><input id="pef_annee" value="${p.annee||""}"></div>
         <div class="field"><label>Coût (€)</label><input id="pef_cout" type="number" step="0.01" value="${p.cout??""}"></div>
@@ -1997,6 +2206,11 @@ function bindParaEditFormEvents(){
     return distinctValues(paraItemsFor(serie).map(x=>x.categorie));
   });
   attachCombo("pef_editeur", "combo_pef_editeur", distinctParaEditeurs);
+  attachCombo("pef_collection", "combo_pef_collection", ()=>{
+    const serie = document.getElementById("pef_serie").value;
+    const categorie = document.getElementById("pef_categorie").value;
+    return distinctValues(parabdItems.filter(p=>p.serie===serie && p.categorie===categorie).map(p=>p.collection));
+  });
   const form = document.getElementById("paraEditForm");
   if(form) form.addEventListener("submit", e=>{
     e.preventDefault();
@@ -2006,10 +2220,10 @@ function bindParaEditFormEvents(){
       showAlert("Il faut au moins renseigner la série et la catégorie.");
       return;
     }
-    const finalizeEdit = categorie => {
+    const finalizeEdit = (categorie, collection) => {
       const cout = parseFloat(val("pef_cout"));
       const fields = {
-        serie, categorie,
+        serie, categorie, collection,
         objet: val("pef_objet") || null,
         annee: val("pef_annee") || null,
         etat: val("pef_etat") || null,
@@ -2024,18 +2238,35 @@ function bindParaEditFormEvents(){
         render();
       });
     };
+    const resolveCollectionAndFinalize = categorie => {
+      const collectionTyped = val("pef_collection");
+      if(!collectionTyped){ finalizeEdit(categorie, null); return; }
+      const foundCol = findSimilarCollection(serie, categorie, collectionTyped);
+      if(foundCol && foundCol.exact){
+        finalizeEdit(categorie, foundCol.match);
+      } else if(foundCol && !foundCol.exact){
+        showChoice(
+          `Une collection proche, « ${foundCol.match} », existe déjà pour ${serie} / ${categorie}. Veux-tu y placer cet objet ?`,
+          "Oui", "Non, nouvelle collection",
+          ()=>finalizeEdit(categorie, foundCol.match),
+          ()=>finalizeEdit(categorie, collectionTyped)
+        );
+      } else {
+        finalizeEdit(categorie, collectionTyped);
+      }
+    };
     const found = findSimilarCategory(serie, categorieTyped);
     if(found && found.exact){
-      finalizeEdit(found.match);
+      resolveCollectionAndFinalize(found.match);
     } else if(found && !found.exact){
       showChoice(
         `Une catégorie proche, « ${found.match} », existe déjà pour ${serie}. Veux-tu y placer cet objet ?`,
         "Oui", "Non, nouvelle catégorie",
-        ()=>finalizeEdit(found.match),
-        ()=>finalizeEdit(categorieTyped)
+        ()=>resolveCollectionAndFinalize(found.match),
+        ()=>resolveCollectionAndFinalize(categorieTyped)
       );
     } else {
-      finalizeEdit(categorieTyped);
+      resolveCollectionAndFinalize(categorieTyped);
     }
   });
 }
@@ -2501,6 +2732,8 @@ function render(){
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
   const formatFilterSelect = document.getElementById("formatFilterSelect");
   if(formatFilterSelect) formatFilterSelect.addEventListener("change", e=>{ state.filterFormat = e.target.value || null; render(); });
+  const etatFilterSelect = document.getElementById("etatFilterSelect");
+  if(etatFilterSelect) etatFilterSelect.addEventListener("change", e=>{ state.filterEtat = e.target.value || null; render(); });
   const addForm = document.getElementById("addForm");
   if(addForm){
     addForm.addEventListener("submit", handleAddSubmit);
@@ -2513,20 +2746,27 @@ function render(){
   if(exportBtn) exportBtn.addEventListener("click", exportBackup);
   const importInput = document.getElementById("importInput");
   if(importInput) importInput.addEventListener("change", e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); });
+  const insuranceBtn = document.getElementById("insuranceBtn");
+  if(insuranceBtn) insuranceBtn.addEventListener("click", openInsuranceDoc);
 
   document.querySelectorAll("[data-paraserie]").forEach(el=>{
-    el.addEventListener("click", ()=>{ parabdState = { level:"categories", serie:el.dataset.paraserie, categorie:null, sort:"add" }; render(); });
+    el.addEventListener("click", ()=>{ parabdState = { level:"categories", serie:el.dataset.paraserie, categorie:null, collection:null, sort:"add" }; render(); });
   });
   document.querySelectorAll("[data-paracategorie]").forEach(el=>{
-    el.addEventListener("click", ()=>{ parabdState.level="items"; parabdState.categorie=el.dataset.paracategorie; parabdState.sort="add"; render(); });
+    el.addEventListener("click", ()=>{ parabdState.level="items"; parabdState.categorie=el.dataset.paracategorie; parabdState.collection=null; parabdState.sort="add"; render(); });
+  });
+  document.querySelectorAll("[data-paracollection]").forEach(el=>{
+    el.addEventListener("click", ()=>{ parabdState.level="collectionItems"; parabdState.collection=el.dataset.paracollection; parabdState.sort="add"; render(); });
   });
   document.querySelectorAll("[data-paraitem]").forEach(el=>{
     el.addEventListener("click", ()=>openParaDetail(el.dataset.paraitem));
   });
   const paraBackToSeries = document.getElementById("paraBackToSeries");
-  if(paraBackToSeries) paraBackToSeries.addEventListener("click", ()=>{ parabdState = { level:"series", serie:null, categorie:null, sort:"add" }; render(); });
+  if(paraBackToSeries) paraBackToSeries.addEventListener("click", ()=>{ parabdState = { level:"series", serie:null, categorie:null, collection:null, sort:"add" }; render(); });
   const paraBackToCategories = document.getElementById("paraBackToCategories");
-  if(paraBackToCategories) paraBackToCategories.addEventListener("click", ()=>{ parabdState.level="categories"; parabdState.categorie=null; render(); });
+  if(paraBackToCategories) paraBackToCategories.addEventListener("click", ()=>{ parabdState.level="categories"; parabdState.categorie=null; parabdState.collection=null; render(); });
+  const paraBackToItems = document.getElementById("paraBackToItems");
+  if(paraBackToItems) paraBackToItems.addEventListener("click", ()=>{ parabdState.level="items"; parabdState.collection=null; render(); });
   const paraSortSelect = document.getElementById("paraSortSelect");
   if(paraSortSelect) paraSortSelect.addEventListener("change", e=>{ parabdState.sort = e.target.value; render(); });
   const paraAddBtn = document.getElementById("paraAddBtn");
@@ -2611,6 +2851,8 @@ function renderPartialCollection(){
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sort = e.target.value; render(); });
   const formatFilterSelect = document.getElementById("formatFilterSelect");
   if(formatFilterSelect) formatFilterSelect.addEventListener("change", e=>{ state.filterFormat = e.target.value || null; render(); });
+  const etatFilterSelect = document.getElementById("etatFilterSelect");
+  if(etatFilterSelect) etatFilterSelect.addEventListener("change", e=>{ state.filterEtat = e.target.value || null; render(); });
   bindClearSearch();
   const newBox = document.getElementById("searchBox");
   if(newBox){
@@ -2625,7 +2867,7 @@ document.querySelectorAll("nav.tabbar button").forEach(b=>{
   b.addEventListener("click", ()=>{
     state.tab = b.dataset.tab;
     if(state.tab==="shelf"){ state.shelfCovers = false; }
-    if(state.tab==="parabd"){ parabdState = { level:"series", serie:null, categorie:null, sort:"add" }; parabdQuery=""; }
+    if(state.tab==="parabd"){ parabdState = { level:"series", serie:null, categorie:null, collection:null, sort:"add" }; parabdQuery=""; }
     render();
     const appEl = document.getElementById("app");
     if(appEl) appEl.scrollTop = 0;
