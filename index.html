@@ -748,7 +748,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.16"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
+const APP_VERSION = "1.2.17"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -1697,7 +1697,11 @@ function handleAddSubmit(e){
   userAdded.push(row);
   saveAdded(userAdded);
   refreshDerived();
-  document.getElementById("formMsg").textContent = `« ${titre} » ajouté à ta collection.`;
+  const matchedWish = wishlist.find(w=>normalizeText(w.serie)===normalizeText(serie) && normalizeText(w.titre)===normalizeText(titre));
+  if(matchedWish) removeFromWishlist(matchedWish.id);
+  document.getElementById("formMsg").textContent = matchedWish
+    ? `« ${titre} » ajouté à ta collection (et retiré de ta liste de souhait).`
+    : `« ${titre} » ajouté à ta collection.`;
   document.getElementById("addForm").reset();
 }
 function handleAddWish(){
@@ -2920,7 +2924,7 @@ function renderGuide(){
     },
     {
       q: "L'onglet Ajouter",
-      a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Si la BD que tu ajoutes correspond exactement (série, titre, tome, format) à une déjà présente, elle est automatiquement ajoutée comme exemplaire supplémentaire plutôt que dupliquée. Le bouton "Ajouter dans la liste de souhait" (sous le bouton principal) enregistre juste la Série et le Titre déjà saisis dans ta liste d'achats à faire, visible et modifiable dans l'onglet Mon profil — sans remplir tout le reste du formulaire.`
+      a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Si la BD que tu ajoutes correspond exactement (série, titre, tome, format) à une déjà présente, elle est automatiquement ajoutée comme exemplaire supplémentaire plutôt que dupliquée. Le bouton "Ajouter dans la liste de souhait" (sous le bouton principal) enregistre juste la Série et le Titre déjà saisis dans ta liste d'achats à faire, visible et modifiable dans l'onglet Mon profil — sans remplir tout le reste du formulaire. Si une série et un titre que tu ajoutes à la collection correspondent (insensible aux accents et majuscules) à un article de ta liste de souhait, il en est automatiquement retiré.`
     },
     {
       q: "L'onglet Para-BD",
@@ -2986,6 +2990,7 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.17", date:"22/07/2026", summary:"Ajouter une BD à la collection retire désormais automatiquement l'article correspondant (série + titre, insensible aux accents/majuscules) de la liste de souhait, si présent." },
   { version:"1.2.16", date:"22/07/2026", summary:"Détection des tomes manquants améliorée : pour Astérix (41 tomes), Barbe-Rouge (35), Buddy Longway (20), Largo Winch (25), Tintin (24) et Valérian (22, numérotés de 0 à 21), le nombre réel de tomes est désormais connu, donc la vérification couvre toute la série et plus seulement les trous entre ce que tu possèdes déjà." },
   { version:"1.2.15", date:"22/07/2026", summary:"Dans l'onglet Mon profil, les 7 sections purement statistiques (état, chiffres clés, série, valeur par série, éditeur, décennie de parution, espace de stockage) sont regroupées dans un seul menu déroulant « Statistiques », pour un onglet plus court à parcourir." },
   { version:"1.2.14", date:"22/07/2026", summary:"L'onglet Statistiques devient Mon profil, réorganisé en catégories dépliables. Nouvelles statistiques : répartition par éditeur, par décennie de parution, valeur moyenne par exemplaire, part d'éditions originales, Para-BD par catégorie. Les BD et objets Para-BD sans photo passent en liste déroulante. Nouvelle Liste de souhait (avec recherche) pour noter les BD à acheter, alimentable depuis un nouveau bouton dans l'onglet Ajouter, et incluse dans les sauvegardes. Dans Para-BD, une collection contenant plusieurs millésimes se sous-divise désormais par année. Correction du tri par tome : il respecte maintenant le format (ex. Classique puis Intégrale) au lieu de mélanger les numérotations." },
