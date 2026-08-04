@@ -29,7 +29,7 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   #insuranceDoc{ display:none; }
   @media print{
-    html, body{ height:auto !important; overflow:visible !important; position:static !important; }
+    html, body{ height:auto !important; overflow:visible !important; position:static !important; background:#fff !important; }
     #app, .lightbox-overlay, .sheet, .sheet-backdrop, .bg-fixed{ display:none !important; }
     body > *:not(#insuranceDoc){ display:none !important; }
     #insuranceDoc{ display:block !important; position:static; background:#fff; color:#111; padding:0; font-family:-apple-system,Helvetica,Arial,sans-serif; }
@@ -264,7 +264,7 @@
   .profile-card > .acc-body{ padding-bottom:16px; }
   .profile-card > summary .acc-sub{ font-size:12px; font-weight:400; color:var(--ink-soft); margin-left:auto; margin-right:10px; }
   .mini-details{ margin-top:14px; }
-  .mini-details summary{ font-size:12.5px; font-weight:600; color:var(--accent); cursor:pointer; list-style:none; }
+  .mini-details summary{ font-size:11px; font-weight:500; color:var(--accent); cursor:pointer; list-style:none; }
   .mini-details summary::-webkit-details-marker{ display:none; }
   .mini-details summary::before{ content:"▸ "; }
   .mini-details[open] summary::before{ content:"▾ "; }
@@ -289,6 +289,9 @@
   .lightbox-dot.active{ background:#fff; }
   .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .photo-del{ position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:rgba(23,23,26,0.65); color:#fff; border:none; font-size:11px; line-height:18px; }
+  .photo-move{ position:absolute; bottom:2px; width:20px; height:20px; border-radius:50%; background:rgba(23,23,26,0.65); color:#fff; border:none; font-size:13px; line-height:20px; padding:0; }
+  .photo-move-left{ left:2px; }
+  .photo-move-right{ right:2px; }
   .add-photo-btn{ display:inline-block; font-size:12.5px; font-weight:600; color:var(--accent); border:1px dashed var(--line); border-radius:10px; padding:9px 14px; cursor:pointer; }
   .photo-hint{ font-size:11px; color:var(--ink-soft); margin-top:8px; line-height:1.4; }
   .close-x{ position:absolute; top:14px; right:16px; background:var(--well); border:none; width:30px; height:30px; border-radius:50%; font-size:15px; color:var(--ink-soft); }
@@ -749,13 +752,13 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.19"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=20, Y +1 et Z revient à 0 (ex. 1.2.20 → 1.3.0)
+const APP_VERSION = "1.2.24"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
   if(Array.isArray(r)){
     const [num, serie, titre, tome, format, eo, annee, editeur, etat, cout, vente, cote, commentaire, owned] = r;
-    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt:null };
+    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt:null, displayNum:null };
   }
   return {
     num: r.num,
@@ -763,7 +766,8 @@ function normalizeRow(r){
     tome: r.tome ?? "Unique", format: r.format ?? "Classique",
     eo: !!r.eo, annee: r.annee ?? null, editeur: r.editeur ?? null, etat: r.etat ?? null,
     cout: r.cout ?? null, vente: r.vente ?? null, cote: r.cote ?? "Non coté",
-    commentaire: r.commentaire ?? "", owned: r.owned !== false, modifiedAt: r.modifiedAt ?? null
+    commentaire: r.commentaire ?? "", owned: r.owned !== false, modifiedAt: r.modifiedAt ?? null,
+    displayNum: r.displayNum ?? null
   };
 }
 function nextUserNum(){
@@ -779,6 +783,23 @@ function nextUserNum(){
   while(used.has(n)) n++; // garde-fou si deux ajouts tombent dans la même milliseconde
   return n;
 }
+// Numéro affiché (façon numéro de fiche/catalogue), distinct de num (l'id interne anti-collision ci-dessus).
+// Continue simplement après le dernier numéro déjà utilisé, en comptant les 150 BD de base ET les BD déjà ajoutées
+// (y compris celles passées à la corbeille, pour qu'un numéro attribué une fois ne soit jamais réutilisé).
+function nextDisplayNum(){
+  const used = RAW.map(r=>r[0]);
+  userAdded.forEach(r=>{ if(r.displayNum) used.push(r.displayNum); });
+  bdTrash.forEach(r=>{ if(r.displayNum) used.push(r.displayNum); });
+  return (used.length ? Math.max(...used) : 0) + 1;
+}
+// Migration ponctuelle : donne un numéro définitif aux BD ajoutées avant l'existence de displayNum
+// (celles qui affichaient un "＋" à la place d'un numéro). Ne s'exécute qu'une fois par BD concernée.
+function migrateDisplayNums(){
+  const toMigrate = userAdded.filter(r=>!r.displayNum).sort((a,b)=>a.num-b.num);
+  if(!toMigrate.length) return;
+  toMigrate.forEach(r=>{ r.displayNum = nextDisplayNum(); });
+  saveAdded(userAdded);
+}
 
 /* ================================================================
    MODÈLE — regroupe les lignes en albums (fusion automatique des doublons)
@@ -788,7 +809,7 @@ function buildAlbums(rawRows, userRows){
   const order = [];
   let aid = 0;
   function processRow(row, isRaw){
-    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt } = row;
+    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt, displayNum } = row;
     if(isRaw && deletedNums.has(num)) return; // BD de base supprimée ou remplacée par une version modifiée
     const key = [serie,titre,tome,format].join("|||");
     if(!map.has(key)){
@@ -798,7 +819,7 @@ function buildAlbums(rawRows, userRows){
     const album = map.get(key);
     if(owned){
       album.owned = true;
-      album.exemplaires.push({ key:"ex"+num, num, eo, annee, editeur, etat, cout, vente, cote, commentaire, modifiedAt });
+      album.exemplaires.push({ key:"ex"+num, num, eo, annee, editeur, etat, cout, vente, cote, commentaire, modifiedAt, displayNum });
     }
   }
   rawRows.map(normalizeRow).forEach(row=>processRow(row, true));
@@ -823,6 +844,7 @@ const LS_BD_TRASH = "bdcollection_bd_trash_v1";
 function loadBdTrash(){ try{ return JSON.parse(localStorage.getItem(LS_BD_TRASH) || "[]"); }catch(e){ return []; } }
 function saveBdTrash(){ try{ localStorage.setItem(LS_BD_TRASH, JSON.stringify(bdTrash)); }catch(e){} }
 let bdTrash = loadBdTrash(); // snapshot complet de chaque exemplaire supprimé (base ou ajouté), avec deletedAt
+migrateDisplayNums();
 
 // --- Rappel de sauvegarde (in-app uniquement : une page statique ne peut pas envoyer de vraie notification) ---
 const LS_LAST_EXPORT = "bdcollection_last_export_v1";
@@ -846,6 +868,7 @@ function deleteExemplaire(num){
     bdTrash.push({
       num, serie:album.serie, titre:album.titre, tome:album.tome, format:album.format,
       eo:ex.eo, annee:ex.annee, editeur:ex.editeur, etat:ex.etat, cout:ex.cout, vente:ex.vente, cote:ex.cote, commentaire:ex.commentaire,
+      displayNum: ex.displayNum ?? null,
       deletedAt: new Date().toISOString()
     });
     saveBdTrash();
@@ -875,7 +898,9 @@ function restoreDeleted(num){
     userAdded.push({
       num, serie:snapshot.serie, titre:snapshot.titre, tome:snapshot.tome, format:snapshot.format,
       eo:snapshot.eo, annee:snapshot.annee, editeur:snapshot.editeur, etat:snapshot.etat,
-      cout:snapshot.cout, vente:snapshot.vente, cote:snapshot.cote, commentaire:snapshot.commentaire, owned:true
+      cout:snapshot.cout, vente:snapshot.vente, cote:snapshot.cote, commentaire:snapshot.commentaire,
+      displayNum: snapshot.displayNum || nextDisplayNum(), // au cas où elle aurait été supprimée avant l'existence de ce numéro
+      owned:true
     });
   }
   saveAdded(userAdded);
@@ -893,7 +918,7 @@ function editExemplaire(num, fields){
   const withTimestamp = { ...fields, modifiedAt: new Date().toISOString() };
   if(num >= USER_ID_BASE){
     const idx = userAdded.findIndex(r=>r.num===num);
-    if(idx>=0) userAdded[idx] = { ...withTimestamp, num, owned:true };
+    if(idx>=0) userAdded[idx] = { ...withTimestamp, num, owned:true, displayNum: userAdded[idx].displayNum ?? null };
   } else {
     deletedNums.add(num); saveDeleted();
     userAdded = userAdded.filter(r=>r.num!==num);
@@ -1348,7 +1373,7 @@ function renderCollection(){
       : (!isNonCote(ex.cote) ? coteDisplay(ex.cote) : eur(ex.vente));
     return `
       <div class="card album-row" data-detail="${a.aid}">
-        <div class="album-num mono">${ex.num < USER_ID_BASE ? ex.num : "＋"}</div>
+        <div class="album-num mono">${ex.num < USER_ID_BASE ? ex.num : (ex.displayNum || "＋")}</div>
         <div class="album-main">
           <div class="album-title">${a.titre}</div>
           <div class="album-sub">${sub}</div>
@@ -1455,11 +1480,12 @@ function renderAjouter(){
     <div class="field-row">
       <button type="button" class="btn-secondary" id="exportBtn">Exporter la sauvegarde</button>
       <label class="btn-secondary">
-        Importer
+        Importer la sauvegarde
         <input type="file" accept="application/json,.json,.gz,.json.gz,application/gzip" id="importInput" style="display:none;">
       </label>
     </div>
     <div class="form-msg" id="backupMsg"></div>
+    <button type="button" class="btn-secondary" id="exportPhotosBtn" style="width:100%; margin-top:10px;">Exporter uniquement les photos (.zip)</button>
     <button type="button" class="btn-secondary" id="insuranceBtn" style="width:100%; margin-top:10px;">📄 Fiche assurance</button>
     <p style="font-size:11.5px; color:rgba(255,255,255,0.65); margin:8px 2px 0; line-height:1.4;">
       Génère un inventaire complet avec valeurs estimées, à imprimer ou enregistrer en PDF — utile pour une déclaration d'assurance.
@@ -1589,44 +1615,229 @@ function looksGzip(arrayBuffer){
   return bytes[0]===0x1f && bytes[1]===0x8b;
 }
 
-async function exportBackup(){
-  const payload = {
-    schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-    added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, photos: PHOTOS
+/* ================================================================
+   EXPORT DES PHOTOS SEULES — fichier .zip généré entièrement en JS,
+   sans bibliothèque externe (méthode "store" : pas de recompression,
+   les photos étant déjà des JPEG compressés, ça n'apporterait rien).
+   ================================================================ */
+const CRC_TABLE = (()=>{
+  const table = [];
+  for(let n=0;n<256;n++){
+    let c = n;
+    for(let k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1);
+    table[n] = c>>>0;
+  }
+  return table;
+})();
+function crc32(bytes){
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = (crc>>>8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function u16(n){ return new Uint8Array([n & 0xFF, (n>>8) & 0xFF]); }
+function u32(n){ return new Uint8Array([n & 0xFF, (n>>8) & 0xFF, (n>>16) & 0xFF, (n>>24) & 0xFF]); }
+function concatBytes(arrays){
+  let total = 0; arrays.forEach(a=>total+=a.length);
+  const result = new Uint8Array(total);
+  let offset=0; arrays.forEach(a=>{ result.set(a, offset); offset+=a.length; });
+  return result;
+}
+function dosDateTime(date){
+  const dosTime = ((date.getHours() & 0x1F) << 11) | ((date.getMinutes() & 0x3F) << 5) | (Math.floor(date.getSeconds()/2) & 0x1F);
+  const dosDate = (((date.getFullYear()-1980) & 0x7F) << 9) | (((date.getMonth()+1) & 0xF) << 5) | (date.getDate() & 0x1F);
+  return { dosTime, dosDate };
+}
+function dataUrlToBytes(dataUrl){
+  const comma = dataUrl.indexOf(",");
+  const bin = atob(dataUrl.slice(comma+1));
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+// Construit un .zip valide (format "store", non compressé) à partir d'une liste { name, bytes }.
+function buildZip(entries){
+  const { dosTime, dosDate } = dosDateTime(new Date());
+  const localChunks = [];
+  const centralChunks = [];
+  let offset = 0;
+  entries.forEach(({name, bytes})=>{
+    const nameBytes = new TextEncoder().encode(name);
+    const crc = crc32(bytes);
+    const size = bytes.length;
+    const local = concatBytes([
+      u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate),
+      u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0), nameBytes
+    ]);
+    localChunks.push(local, bytes);
+    centralChunks.push(concatBytes([
+      u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate),
+      u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0), u16(0), u16(0), u16(0), u32(0),
+      u32(offset), nameBytes
+    ]));
+    offset += local.length + bytes.length;
+  });
+  const centralDirStart = offset;
+  const centralDirBytes = concatBytes(centralChunks);
+  const eocd = concatBytes([
+    u32(0x06054b50), u16(0), u16(0), u16(entries.length), u16(entries.length),
+    u32(centralDirBytes.length), u32(centralDirStart), u16(0)
+  ]);
+  return new Blob([...localChunks, centralDirBytes, eocd], { type:"application/zip" });
+}
+function sanitizeFilename(s){
+  return (s||"").replace(/[\/\\:*?"<>|]/g,"-").trim() || "sans-titre";
+}
+function uniqueNameFactory(){
+  const used = new Set();
+  return function(name){
+    if(!used.has(name)){ used.add(name); return name; }
+    const dot = name.lastIndexOf(".");
+    const base = dot>=0 ? name.slice(0,dot) : name;
+    const ext = dot>=0 ? name.slice(dot) : "";
+    let i=2, candidate;
+    do{ candidate = `${base} (${i})${ext}`; i++; }while(used.has(candidate));
+    used.add(candidate);
+    return candidate;
   };
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2,"0");
-  const mm = String(now.getMonth()+1).padStart(2,"0");
-  const yy = String(now.getFullYear()).slice(2);
-  const jsonText = JSON.stringify(payload);
-  const compressed = await compressText(jsonText);
-  const filename = compressed
-    ? `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json.gz`
-    : `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json`;
-  const blob = compressed
-    ? new Blob([compressed], { type:"application/gzip" })
-    : new Blob([jsonText], { type:"application/json" });
+}
+function collectPhotoExportEntries(){
+  const entries = [];
+  const uniqueName = uniqueNameFactory();
+  OWNED.forEach(a=>{
+    a.exemplaires.forEach((ex,exi)=>{
+      const photos = PHOTOS[ex.key] || [];
+      photos.forEach((src,pi)=>{
+        const folder = sanitizeFilename(a.serie);
+        const base = sanitizeFilename(a.titre) + (a.tome!=="Unique" ? ` T${a.tome}` : "");
+        const suffix = a.exemplaires.length>1 ? ` - exemplaire ${exi+1}` : "";
+        const photoSuffix = photos.length>1 ? ` - photo ${pi+1}` : "";
+        entries.push({ name: uniqueName(`BD/${folder}/${base}${suffix}${photoSuffix}.jpg`), dataUrl: src });
+      });
+    });
+  });
+  parabdItems.forEach(p=>{
+    const photos = PHOTOS["para"+p.id] || [];
+    photos.forEach((src,pi)=>{
+      const folder = sanitizeFilename(p.serie);
+      const base = sanitizeFilename(p.categorie) + (p.objet ? " - "+sanitizeFilename(p.objet) : "");
+      const photoSuffix = photos.length>1 ? ` - photo ${pi+1}` : "";
+      entries.push({ name: uniqueName(`Para-BD/${folder}/${base}${photoSuffix}.jpg`), dataUrl: src });
+    });
+  });
+  return entries;
+}
+function estimatePhotoExportSize(entries){
+  return entries.reduce((sum,e)=>{
+    const comma = e.dataUrl.indexOf(",");
+    return sum + Math.floor((e.dataUrl.length - comma - 1) * 0.75);
+  }, 0);
+}
+function formatBytes(n){
+  if(n < 1024) return n + " o";
+  if(n < 1024*1024) return Math.round(n/1024) + " Ko";
+  return (n/(1024*1024)).toFixed(1) + " Mo";
+}
+async function exportPhotosOnly(){
+  const msg = document.getElementById("backupMsg");
+  const entries = collectPhotoExportEntries();
+  if(!entries.length){
+    showAlert("Il n'y a aucune photo à exporter pour l'instant.");
+    return;
+  }
+  const sizeEstimate = estimatePhotoExportSize(entries);
+  showConfirm(
+    `${entries.length} photo${entries.length>1?"s":""} au total, environ ${formatBytes(sizeEstimate)}. Créer et exporter cette archive ?`,
+    "Exporter",
+    async ()=>{
+      if(msg) msg.textContent = "Préparation de l'archive photo…";
+      try{
+        const zipEntries = entries.map(e=>({ name:e.name, bytes:dataUrlToBytes(e.dataUrl) }));
+        const blob = buildZip(zipEntries);
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2,"0");
+        const mm = String(now.getMonth()+1).padStart(2,"0");
+        const yy = String(now.getFullYear()).slice(2);
+        const filename = `photos_bd_${dd}-${mm}-${yy}.zip`;
 
-  // Sur iPhone, on propose d'abord le partage natif (permet de choisir "Mail" avec le fichier
-  // déjà joint) ; si ce n'est pas possible, on retombe sur le téléchargement classique.
-  try{
-    const file = new File([blob], filename, { type: blob.type });
-    if(navigator.canShare && navigator.canShare({ files:[file] })){
-      await navigator.share({ files:[file], title:"Sauvegarde Collection BD" });
-      setLastExportAt();
-      return;
+        try{
+          const file = new File([blob], filename, { type:"application/zip" });
+          if(navigator.canShare && navigator.canShare({ files:[file] })){
+            await navigator.share({ files:[file], title:"Photos de la collection" });
+            if(msg) msg.textContent = "Photos exportées avec succès.";
+            return;
+          }
+        }catch(shareErr){
+          if(shareErr && shareErr.name === "AbortError"){
+            if(msg) msg.textContent = "";
+            return;
+          }
+          throw shareErr;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        if(msg) msg.textContent = "Photos exportées avec succès.";
+      }catch(err){
+        if(msg) msg.textContent = "Échec de l'export des photos — réessaie.";
+      }
     }
-  }catch(err){ /* l'utilisateur a peut-être juste annulé le partage : pas grave */ }
+  );
+}
+async function exportBackup(){
+  const msg = document.getElementById("backupMsg");
+  try{
+    const payload = {
+      schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
+      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, photos: PHOTOS
+    };
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2,"0");
+    const mm = String(now.getMonth()+1).padStart(2,"0");
+    const yy = String(now.getFullYear()).slice(2);
+    const jsonText = JSON.stringify(payload);
+    const compressed = await compressText(jsonText);
+    const filename = compressed
+      ? `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json.gz`
+      : `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json`;
+    const blob = compressed
+      ? new Blob([compressed], { type:"application/gzip" })
+      : new Blob([jsonText], { type:"application/json" });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  setLastExportAt();
+    // Sur iPhone, on propose d'abord le partage natif (permet de choisir "Mail" avec le fichier
+    // déjà joint) ; si ce n'est pas possible, on retombe sur le téléchargement classique.
+    try{
+      const file = new File([blob], filename, { type: blob.type });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], title:"Sauvegarde Collection BD" });
+        setLastExportAt();
+        if(msg) msg.textContent = "Sauvegarde exportée avec succès.";
+        return;
+      }
+    }catch(shareErr){
+      if(shareErr && shareErr.name === "AbortError"){
+        // L'utilisateur a simplement annulé le partage : ce n'est pas un échec, rien à signaler.
+        if(msg) msg.textContent = "";
+        return;
+      }
+      throw shareErr; // une vraie erreur de partage est traitée comme un échec d'export ci-dessous
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setLastExportAt();
+    if(msg) msg.textContent = "Sauvegarde exportée avec succès.";
+  }catch(err){
+    if(msg) msg.textContent = "Échec de l'export : la sauvegarde n'a probablement pas été créée correctement. Réessaie.";
+  }
 }
 function importBackup(file){
   const reader = new FileReader();
@@ -1705,6 +1916,7 @@ function finalizeAddSubmit(serie, titre, mergeInto){
   const cout = parseFloat(val("f_cout")); const vente = parseFloat(val("f_vente"));
   const row = {
     num: nextUserNum(),
+    displayNum: mergeInto ? null : nextDisplayNum(),
     // En cas de fusion confirmée, on reprend exactement série/titre/tome/format de l'album existant :
     // c'est ce qui garantit la fusion en exemplaire supplémentaire (la clé de regroupement doit être identique au caractère près).
     serie: mergeInto ? mergeInto.serie : serie,
@@ -1787,6 +1999,29 @@ function detectMissingTomes(){
   return results.sort((a,b)=>a.serie.localeCompare(b.serie,"fr"));
 }
 
+// Accordéon exclusif de l'onglet Profil : ouvrir une section referme les autres.
+// On intercepte le clic sur <summary> plutôt que l'événement "toggle" (qui se déclenche de façon
+// asynchrone dans les navigateurs récents, ce qui rendait un simple drapeau peu fiable).
+function bindProfileAccordion(){
+  const cards = document.querySelectorAll("#main .profile-card");
+  cards.forEach(d=>{
+    const summary = d.querySelector(":scope > summary");
+    if(!summary) return;
+    summary.addEventListener("click", e=>{
+      e.preventDefault();
+      if(d.open){
+        d.open = false; // referme seulement celle-ci
+      } else {
+        cards.forEach(o=>{ o.open = false; }); // referme les autres avant d'ouvrir celle-ci
+        d.open = true;
+      }
+    });
+  });
+  const expandAllBtn = document.getElementById("expandAllProfil");
+  if(expandAllBtn) expandAllBtn.addEventListener("click", ()=>{
+    cards.forEach(d=>{ d.open = true; });
+  });
+}
 function renderStats(){
   const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
   const totalVente = OWNED.reduce((s,a)=>s+albumTotalVente(a),0);
@@ -1816,6 +2051,18 @@ function renderStats(){
     </div>
   `).join("");
 
+  // Toutes les paires (exemplaire + contexte de son album), pour lister les BD derrière chaque statistique.
+  const allExWithContext = OWNED.flatMap(a=>a.exemplaires.map(ex=>({ titre:a.titre, format:a.format, annee:ex.annee, etat:ex.etat, editeur:ex.editeur })));
+  function albumMiniList(list){
+    return list.slice().sort((a,b)=>a.titre.localeCompare(b.titre,"fr")).map(x=>`
+      <div class="rarity-row"><span style="flex:1;">${x.titre} <span style="color:var(--ink-soft);">· ${x.format} · ${x.annee||"Non renseigné"}</span></span></div>
+    `).join("");
+  }
+  function bucketDetails(list){
+    if(!list.length) return "";
+    return `<details class="mini-details"><summary>Voir les BD (${list.length})</summary><div class="mini-details-body">${albumMiniList(list)}</div></details>`;
+  }
+
   const etatCounts = ETAT_OPTIONS.map(e=>({
     etat: e,
     count: OWNED.reduce((s,a)=>s+a.exemplaires.filter(ex=>ex.etat===e).length, 0)
@@ -1827,6 +2074,7 @@ function renderStats(){
       <div class="bar-label"><span>${e.etat}</span><span class="mono">${e.count}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${(e.count/etatMax*100).toFixed(0)}%; background:${etatColor(e.etat)};"></div></div>
     </div>
+    ${bucketDetails(allExWithContext.filter(x=>x.etat===e.etat))}
   `).join("");
 
   const serieValues = SERIE_COUNTS.map(s=>({
@@ -1854,6 +2102,7 @@ function renderStats(){
       <div class="bar-label"><span>${e.editeur}</span><span class="mono">${e.count}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${(e.count/editeurMax*100).toFixed(0)}%"></div></div>
     </div>
+    ${bucketDetails(allExWithContext.filter(x=>(x.editeur||"Non renseigné")===e.editeur))}
   `).join("");
 
   const decadeCounts = {};
@@ -1868,11 +2117,16 @@ function renderStats(){
     return parseInt(a.decade,10) - parseInt(b.decade,10);
   });
   const decadeMax = Math.max(...decadeList.map(d=>d.count), 1);
+  function decadeLabelOf(annee){
+    const y = parseInt((annee||"").toString(),10);
+    return isNaN(y) ? "Non renseigné" : (Math.floor(y/10)*10)+"s";
+  }
   const decadeBars = decadeList.map(d=>`
     <div class="bar-row">
       <div class="bar-label"><span>${d.decade}</span><span class="mono">${d.count}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${(d.count/decadeMax*100).toFixed(0)}%"></div></div>
     </div>
+    ${bucketDetails(allExWithContext.filter(x=>decadeLabelOf(x.annee)===d.decade))}
   `).join("");
 
   const valeurMoyenne = etatTotal ? totalVente/etatTotal : 0;
@@ -1903,6 +2157,9 @@ function renderStats(){
       <div class="card mini-stat"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût total</div></div>
       <div class="card mini-stat"><div class="val mono">${eur(totalVente)}</div><div class="lab">Vente estim.</div></div>
       <div class="card mini-stat"><div class="val mono">${eur(totalCote)}</div><div class="lab">BDM / BD Gest</div></div>
+    </div>
+    <div style="text-align:right; margin-bottom:8px;">
+      <button class="link-btn" id="expandAllProfil">Tout déplier</button>
     </div>
 
     <details class="card profile-card">
@@ -2052,7 +2309,7 @@ function renderWishlistRows(){
     .filter(w=>!q || normalizeText(w.titre).includes(q) || normalizeText(w.serie).includes(q))
     .sort((a,b)=>(b.addedAt||"").localeCompare(a.addedAt||""))
     .map(w=>`
-      <div class="wish-row">
+      <div class="wish-row" data-wishdetail="${w.id}" style="cursor:pointer;">
         <div class="wish-main">
           <div class="wish-title">${w.titre}</div>
           <div class="wish-sub">${w.serie}${w.commentaire ? " · "+w.commentaire : ""}</div>
@@ -2070,13 +2327,17 @@ function renderWishlistSection(){
 }
 function bindWishlistSearch(){
   document.querySelectorAll("[data-wishremove]").forEach(el=>{
-    el.addEventListener("click", ()=>{
+    el.addEventListener("click", e=>{
+      e.stopPropagation(); // ne doit pas aussi déclencher l'ouverture de la fiche (data-wishdetail sur la ligne parente)
       const id = Number(el.dataset.wishremove);
       showConfirm("Retirer cet article de ta liste de souhait ?", "Retirer", ()=>{
         removeFromWishlist(id);
         render();
       });
     });
+  });
+  document.querySelectorAll("[data-wishdetail]").forEach(el=>{
+    el.addEventListener("click", ()=>openWishDetail(Number(el.dataset.wishdetail)));
   });
   const wishSearch = document.getElementById("wishSearch");
   if(wishSearch){
@@ -2090,6 +2351,43 @@ function bindWishlistSearch(){
     });
   }
 }
+function renderWishDetail(id){
+  const w = wishlist.find(x=>x.id===id);
+  if(!w) return "";
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">${w.serie || "Non renseigné"} · Liste de souhait</div>
+    <div class="sheet-title">${w.titre}</div>
+    <div class="sheet-meta">Non renseigné · Non renseigné · Non renseigné</div>
+    <span class="badge" style="background:var(--well); color:var(--ink-soft);">Pas encore dans ta collection</span>
+    <div class="ledger" style="margin-top:14px;">
+      <div><div class="v mono">Non renseigné</div><div class="l">Coût</div></div>
+      <div><div class="v mono">Non renseigné</div><div class="l">Vente</div></div>
+      <div><div class="v mono">Non renseigné</div><div class="l">BDM/BD Gest</div></div>
+    </div>
+    <p class="sheet-note">${w.commentaire || "Aucune note."}</p>
+    ${w.addedAt ? `<p class="photo-hint">Ajoutée à la liste de souhait le ${formatDateTime(w.addedAt)}.</p>` : ""}
+    <div class="sheet-actions">
+      <button class="btn-delete" id="wishDetailRemove" style="width:100%;">Retirer de la liste de souhait</button>
+    </div>
+  `;
+}
+function openWishDetail(id){
+  wishDetailId = id;
+  document.getElementById("sheet").innerHTML = renderWishDetail(id);
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+  const removeBtn = document.getElementById("wishDetailRemove");
+  if(removeBtn) removeBtn.addEventListener("click", ()=>{
+    showConfirm("Retirer cet article de ta liste de souhait ?", "Retirer", ()=>{
+      removeFromWishlist(id);
+      closeDetail();
+      render();
+    });
+  });
+}
+let wishDetailId = null;
 
 /* ================================================================
    RENDU : PARA-BD (objets dérivés — fèves, figurines, etc.)
@@ -2449,7 +2747,12 @@ function renderParaDetail(){
   const key = "para"+p.id;
   const photos = PHOTOS[key] || [];
   const photoThumbs = photos.map((src,i)=>`
-    <div class="photo-thumb"><img src="${src}"><button class="photo-del" data-delparaphoto="${i}">×</button></div>
+    <div class="photo-thumb">
+      <img src="${src}">
+      <button class="photo-del" data-delparaphoto="${i}">×</button>
+      ${i>0 ? `<button type="button" class="photo-move photo-move-left" data-moveparaphoto="${i}" data-dir="-1">‹</button>` : ""}
+      ${i<photos.length-1 ? `<button type="button" class="photo-move photo-move-right" data-moveparaphoto="${i}" data-dir="1">›</button>` : ""}
+    </div>
   `).join("");
   return `
     <button class="close-x" id="closeSheet">&times;</button>
@@ -2508,6 +2811,19 @@ function bindParaDetailEvents(){
       document.getElementById("sheet").innerHTML = renderParaDetail();
       bindParaDetailEvents();
       render();
+    });
+  });
+  document.querySelectorAll("[data-moveparaphoto]").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const key = "para"+paraDetailId;
+      const i = Number(el.dataset.moveparaphoto);
+      const j = i + Number(el.dataset.dir);
+      const arr = PHOTOS[key];
+      if(!arr || j<0 || j>=arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      await idbSavePhotosFor(key);
+      document.getElementById("sheet").innerHTML = renderParaDetail();
+      bindParaDetailEvents();
     });
   });
   {
@@ -2676,7 +2992,12 @@ function renderSheet(){
   ` : "";
 
   const photoThumbs = photos.map((src,i)=>`
-    <div class="photo-thumb"><img src="${src}"><button class="photo-del" data-delphoto="${i}">×</button></div>
+    <div class="photo-thumb">
+      <img src="${src}">
+      <button class="photo-del" data-delphoto="${i}">×</button>
+      ${i>0 ? `<button type="button" class="photo-move photo-move-left" data-movephoto="${i}" data-dir="-1">‹</button>` : ""}
+      ${i<photos.length-1 ? `<button type="button" class="photo-move photo-move-right" data-movephoto="${i}" data-dir="1">›</button>` : ""}
+    </div>
   `).join("");
 
   return `
@@ -2751,6 +3072,20 @@ function bindSheetEvents(){
       document.getElementById("sheet").innerHTML = renderSheet();
       bindSheetEvents();
       render();
+    });
+  });
+  document.querySelectorAll("[data-movephoto]").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const a = ALBUMS.find(x=>x.aid===sheetState.aid);
+      const ex = a.exemplaires[sheetState.exIndex];
+      const i = Number(el.dataset.movephoto);
+      const j = i + Number(el.dataset.dir);
+      const arr = PHOTOS[ex.key];
+      if(!arr || j<0 || j>=arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      await idbSavePhotosFor(ex.key);
+      document.getElementById("sheet").innerHTML = renderSheet();
+      bindSheetEvents();
     });
   });
   {
@@ -2946,7 +3281,7 @@ function renderGuide(){
     },
     {
       q: "L'onglet Collection",
-      a: `Recherche par titre, série ou éditeur — insensible aux majuscules et aux accents (tape "asterix" retrouve bien "Astérix"). Deux menus déroulants permettent de filtrer par format et de trier (numéro, alphabétique, valeur, côte, tome, ordre de parution, EO d'abord). Le tri par tome respecte d'abord la série puis le format : par exemple pour Barbe-Rouge, tu verras tous les tomes du format "Classique" dans l'ordre, puis tous les tomes du format "Intégral" dans l'ordre — les deux numérotations ne sont jamais mélangées. Les chips en haut filtrent par série. Quand un album existe en plusieurs exemplaires (état différent, par exemple), une seule ligne apparaît avec la mention "en double" ou "en triple" — les détails de chaque exemplaire sont accessibles dans sa fiche. Sur la fiche d'un exemplaire, l'âge (calculé automatiquement à partir de l'année d'aujourd'hui) s'affiche entre parenthèses juste après l'année, s'il elle est renseignée. "Non renseigné" indique simplement qu'un champ n'a pas été rempli.`
+      a: `Recherche par titre, série ou éditeur — insensible aux majuscules et aux accents (tape "asterix" retrouve bien "Astérix"). Deux menus déroulants permettent de filtrer par format et de trier (numéro, alphabétique, valeur, côte, tome, ordre de parution, EO d'abord). Le tri par tome respecte d'abord la série puis le format : par exemple pour Barbe-Rouge, tu verras tous les tomes du format "Classique" dans l'ordre, puis tous les tomes du format "Intégral" dans l'ordre — les deux numérotations ne sont jamais mélangées. Les chips en haut filtrent par série. Quand un album existe en plusieurs exemplaires (état différent, par exemple), une seule ligne apparaît avec la mention "en double" ou "en triple" — les détails de chaque exemplaire sont accessibles dans sa fiche. Le petit numéro affiché à gauche de chaque ligne correspond au numéro de fiche d'origine pour les 150 BD de base ; pour une BD que tu ajoutes, il continue simplement après le dernier numéro déjà attribué (151, 152…) et reste définitivement le sien, même après une suppression puis restauration depuis la Corbeille. Sur la fiche d'un exemplaire, l'âge (calculé automatiquement à partir de l'année d'aujourd'hui) s'affiche entre parenthèses juste après l'année, si elle est renseignée. "Non renseigné" indique simplement qu'un champ n'a pas été rempli.`
     },
     {
       q: "L'onglet Ajouter",
@@ -2958,7 +3293,7 @@ function renderGuide(){
     },
     {
       q: "L'onglet Mon profil",
-      a: `Coût total, valeur de vente estimée et côte BDM/BD Gest de ta collection, toujours visibles en haut. En dessous, chaque catégorie se déplie séparément (comme ce guide) pour ne pas surcharger l'écran : Progression photo (avec les listes déroulantes des BD et objets Para-BD qui n'ont pas encore de photo), Liste de souhait, Statistiques (répartition par état, chiffres clés, répartition par série, valeur par série, répartition par éditeur, répartition par décennie de parution, espace de stockage — tout regroupé au même endroit), Para-BD par catégorie, Tomes manquants détectés, et la Corbeille. Pour Astérix, Barbe-Rouge, Buddy Longway, Largo Winch, Tintin et Valérian, le nombre réel de tomes existants m'a été confirmé : la détection des tomes manquants couvre donc la série entière (pas seulement les trous entre ce que tu possèdes déjà). Pour les autres séries, seuls les trous internes sont vérifiés. La Corbeille conserve tout ce que tu supprimes (BD comme Para-BD) : "Restaurer" le remet en place, "Vider" l'efface définitivement et sans retour possible. La Liste de souhait a sa propre barre de recherche (insensible aux accents et majuscules) ; tu y ajoutes des titres depuis l'onglet Ajouter, et tu les retires d'ici une fois achetés.`
+      a: `Coût total, valeur de vente estimée et côte BDM/BD Gest de ta collection, toujours visibles en haut. En dessous, chaque catégorie se déplie séparément (comme ce guide) pour ne pas surcharger l'écran : Progression photo (avec les listes déroulantes des BD et objets Para-BD qui n'ont pas encore de photo), Liste de souhait, Statistiques (répartition par état, chiffres clés, répartition par série, valeur par série, répartition par éditeur, répartition par décennie de parution, espace de stockage — tout regroupé au même endroit, avec sous chaque répartition une petite liste déroulante des BD concernées), Para-BD par catégorie, Tomes manquants détectés, et la Corbeille. Ouvrir une catégorie referme automatiquement celle qui était ouverte ; le bouton "Tout déplier" en haut permet de toutes les voir en même temps (et refermer une seule catégorie ensuite ne touche pas aux autres). Pour Astérix, Barbe-Rouge, Buddy Longway, Largo Winch, Tintin et Valérian, le nombre réel de tomes existants m'a été confirmé : la détection des tomes manquants couvre donc la série entière (pas seulement les trous entre ce que tu possèdes déjà). Pour les autres séries, seuls les trous internes sont vérifiés. La Corbeille conserve tout ce que tu supprimes (BD comme Para-BD) : "Restaurer" le remet en place, "Vider" l'efface définitivement et sans retour possible. La Liste de souhait a sa propre barre de recherche (insensible aux accents et majuscules) ; tu y ajoutes des titres depuis l'onglet Ajouter, tu retrouves ses caractéristiques en tapant sur un article (tout y est "Non renseigné" à part le titre, la série et un éventuel commentaire, puisque tu ne l'as pas encore), et tu le retires une fois acheté.`
     },
     {
       q: "Technicités de l'application",
@@ -2969,13 +3304,14 @@ function renderGuide(){
           Quand je modifie le code et que tu remplaces le fichier index.html sur GitHub, l'adresse de ton application (https://tonpseudo.github.io/…) ne change pas. Tes données sont rattachées à cette adresse, pas au contenu du fichier — donc à chaque nouvelle version, ton téléphone retrouve automatiquement tout ce que tu avais déjà ajouté, sans aucune manipulation. À chaque changement dans la structure des données (comme l'ajout de la Catégorie dans Para-BD), j'écris aussi du code qui "traduit" tes anciennes données vers le nouveau format.<br><br>
 
           <strong>Comment exporter une sauvegarde, étape par étape</strong><br>
-          1. Onglet Ajouter → section "Sauvegarde locale" → bouton "Exporter (.json)"<br>
+          1. Onglet Ajouter → section "Sauvegarde locale" → bouton "Exporter la sauvegarde"<br>
           2. Le menu de partage natif de l'iPhone s'ouvre : choisis où envoyer le fichier — Mail (te l'envoyer par e-mail), Enregistrer dans Fichiers (le garder sur le téléphone ou iCloud Drive), AirDrop (vers un autre appareil), etc.<br>
-          3. Le fichier s'appelle <em>sauvegarde_bd_vX.Y.Z_JJ-MM-AA.json</em> — le numéro de version de l'appli et la date du jour de l'export.<br><br>
+          3. Le fichier s'appelle <em>sauvegarde_bd_vX.Y.Z_JJ-MM-AA.json.gz</em> (ou <em>.json</em> si ton navigateur ne sait pas compresser) — le numéro de version de l'appli et la date du jour de l'export.<br>
+          4. Un message sous les boutons confirme si l'export a réussi ou non — s'il indique un échec, retente l'export.<br><br>
 
           <strong>Comment importer une sauvegarde, étape par étape</strong><br>
-          1. Assure-toi que le fichier .json est accessible sur le téléphone où tu veux l'importer (transfère-le au préalable si besoin : AirDrop, e-mail, iCloud Drive…)<br>
-          2. Onglet Ajouter → section "Sauvegarde locale" → bouton "Importer"<br>
+          1. Assure-toi que le fichier est accessible sur le téléphone où tu veux l'importer (transfère-le au préalable si besoin : AirDrop, e-mail, iCloud Drive…)<br>
+          2. Onglet Ajouter → section "Sauvegarde locale" → bouton "Importer la sauvegarde"<br>
           3. Choisis le fichier depuis l'app Fichiers<br>
           4. Tes BD ajoutées, tes objets Para-BD et tes photos réapparaissent, fusionnés avec ce qui existe déjà sur cet appareil.<br><br>
 
@@ -2987,6 +3323,12 @@ function renderGuide(){
 
           <strong>Ce que contient (et ne contient pas) une sauvegarde</strong><br>
           Contenu : tes BD ajoutées, tes objets Para-BD (et leurs corbeilles respectives), ta liste de souhait, toutes tes photos. Non inclus : les 150 BD de la collection de base, écrites directement dans le code de l'application — donc toujours présentes automatiquement, sur n'importe quel appareil, sans avoir besoin d'être sauvegardées.<br><br>
+
+          <strong>Exporter uniquement les photos</strong><br>
+          Le bouton "Exporter uniquement les photos (.zip)" (sous les boutons de sauvegarde) crée une archive .zip contenant toutes tes photos (BD et Para-BD), classées dans des dossiers par série, sans le reste des données de la sauvegarde. Une pop-up t'indique d'abord le nombre de photos et la taille estimée du fichier avant de te demander confirmation.<br><br>
+
+          <strong>Réordonner les photos d'une fiche</strong><br>
+          Sur la fiche d'une BD ou d'un objet Para-BD, chaque photo affiche deux petites flèches (‹ ›) en bas pour l'échanger avec sa voisine — pratique pour mettre en premier la photo que tu préfères.<br><br>
 
           <strong>Espace de stockage disponible</strong><br>
           Les photos sont compressées automatiquement avant d'être enregistrées, pour en tenir beaucoup plus dans le même espace. L'onglet Mon profil affiche (dans la section "Espace de stockage") une jauge en temps réel de l'espace utilisé et restant sur ton téléphone, avec une estimation du nombre de photos qu'il te reste avant d'atteindre la limite réelle de ton appareil.<br><br>
@@ -3016,6 +3358,11 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.24", date:"22/07/2026", summary:"Le texte \"Voir les BD\" des listes déroulantes par statistique (état, éditeur, décennie) est maintenant nettement plus petit que le libellé de la statistique elle-même, au lieu de paraître presque aussi imposant." },
+  { version:"1.2.23", date:"22/07/2026", summary:"Second lot de la grosse mise à jour : export des photos seules en .zip (organisées par série, avec pop-up de taille avant confirmation), réordonnancement des photos d'une fiche (flèches ‹ ›), fiche détaillée pour un article de la liste de souhait, listes déroulantes des BD sous chaque statistique (état, éditeur, décennie), accordéon exclusif dans Mon profil avec bouton « Tout déplier »." },
+  { version:"1.2.22", date:"22/07/2026", summary:"Premier lot de la grosse mise à jour : correction du carré bleu qui apparaissait à la fin de la fiche assurance PDF, message clair de succès/échec après l'export d'une sauvegarde, bouton renommé en « Importer la sauvegarde », et un petit clin d'œil gaulois tout en bas de l'historique des nouveautés." },
+  { version:"1.2.21", date:"22/07/2026", summary:"Les BD ajoutées reçoivent désormais un numéro de fiche continu (151, 152…) affiché à gauche, à la suite des 150 BD de base, au lieu d'un simple « ＋ ». Les BD déjà ajoutées avant cette mise à jour reçoivent automatiquement leur numéro dès l'ouverture de l'appli, sans rien à faire. Ce numéro reste définitivement attribué, y compris après passage par la Corbeille." },
+  { version:"1.2.20", date:"22/07/2026", summary:"Changement de règle de versionnage : la bascule vers un Y supérieur se fait maintenant à Z=40 au lieu de Z=20 (donc 1.2.0 à 1.2.40 avant de passer à 1.3.0)." },
   { version:"1.2.19", date:"22/07/2026", summary:"L'âge (calculé à partir de l'année en cours) s'affiche désormais entre parenthèses juste après l'année, sur la fiche d'une BD comme sur celle d'un objet Para-BD. Rien ne s'affiche si l'année n'est pas renseignée." },
   { version:"1.2.18", date:"22/07/2026", summary:"Correction d'un bug de doublon à l'ajout : la fusion en exemplaire supplémentaire dépendait d'une correspondance exacte du tome et du format (souvent ratée en pratique, ex. Astérix le gaulois), créant un album en double. Elle se base maintenant sur série + titre, avec une confirmation avant de fusionner. Correction également d'un bug d'affichage sur certains iPhone où le texte des suggestions (Série/Titre/Format/Éditeur) pouvait apparaître invisible (blanc sur blanc)." },
   { version:"1.2.17", date:"22/07/2026", summary:"Ajouter une BD à la collection retire désormais automatiquement l'article correspondant (série + titre, insensible aux accents/majuscules) de la liste de souhait, si présent." },
@@ -3040,6 +3387,7 @@ function renderChangelog(){
     <div class="sheet-eyebrow">Historique</div>
     <div class="sheet-title">Nouveautés de l'application</div>
     ${items}
+    <p style="font-size:11.5px; color:var(--ink-soft); line-height:1.6; text-align:center; font-style:italic; margin:18px 4px 4px;">🐗 50 avant J.-C. — Toute la Gaule est occupée par les Romains... enfin presque : un petit village résiste encore et toujours à l'envahisseur. Les nouveautés des versions antérieures à 1.2.12, elles, n'ont pas eu cette chance — le papyrus n'existait pas encore par ici, et aucun druide n'avait trouvé de sortilège pour graver un journal de mise à jour dans le menhir. Panoramix y travaille, mais la potion magique ne fait toujours pas de rétroactif.</p>
   `;
 }
 function openChangelog(){
@@ -3138,6 +3486,7 @@ function render(){
   if(manageVitrineBtn) manageVitrineBtn.addEventListener("click", openVitrineManager);
   const openGuideBtn = document.getElementById("openGuideBtn");
   if(openGuideBtn) openGuideBtn.addEventListener("click", openGuide);
+  bindProfileAccordion();
   const changelogLink = document.getElementById("changelogLink");
   if(changelogLink) changelogLink.addEventListener("click", openChangelog);
   const reminderExportBtn = document.getElementById("reminderExportBtn");
@@ -3170,6 +3519,8 @@ function render(){
   if(addWishBtn) addWishBtn.addEventListener("click", handleAddWish);
   const exportBtn = document.getElementById("exportBtn");
   if(exportBtn) exportBtn.addEventListener("click", exportBackup);
+  const exportPhotosBtn = document.getElementById("exportPhotosBtn");
+  if(exportPhotosBtn) exportPhotosBtn.addEventListener("click", exportPhotosOnly);
   const importInput = document.getElementById("importInput");
   if(importInput) importInput.addEventListener("change", e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); });
   const insuranceBtn = document.getElementById("insuranceBtn");
