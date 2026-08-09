@@ -366,156 +366,158 @@ const DEFAULT_VITRINE = [
    ================================================================ */
 const FIELDS = ["num","serie","titre","tome","format","eo","annee","editeur","etat","cout","vente","cote","commentaire","owned"];
 const RAW = [
-[1,"Amourante (L')","Amourante (L')","Unique","Classique",true,"2025","Glénat","Neuf",26.00,20,"Non côté","Neuf",true],
-[2,"Astérix","Astérix le gaulois","1","Classique - 1C",false,"1965","Pilote","Très bon état",137.70,150,"120","Très bon état, brillance absolue de la couverture, cahier parfait. Coin inférieur droit légèrement abîmé",true],
-[3,"Astérix","La serpe d'or","2","Classique",false,null,null,null,null,null,null,"à acheter",false],
-[4,"Astérix","Astérix et les Goths","3","Classique",false,null,null,null,null,null,null,"à acheter",false],
-[5,"Astérix","Astérix Gladiateur","4","Classique - 4a",false,"1965","Pilote","Très bon état",70.00,99,"180","RAS",true],
-[6,"Astérix","Le tour de Gaule d'Astérix","5","Classique - 5b",false,"1965","Pilote","Très bon état",42.29,60,"100","RAS",true],
-[7,"Astérix","Astérix et Cléopâtre","6","Classique",false,null,null,null,null,null,null,"à acheter",false],
-[8,"Astérix","Le combat des chefs","7","Classique",true,"1966","Dargaud","Très mauvais état",1.00,7,"250","Coins supérieur et inférieur déchirés",true],
-[9,"Astérix","Astérix chez les Bretons","8","Classique",true,"1966","Dargaud","Très bon état",70.00,90,"150","Coins très légèrement tassés",true],
-[10,"Astérix","Astérix et les Normands","9","Classique",true,"1966","Dargaud","Très bon état",25.00,35,"150","RAS",true],
-[11,"Astérix","Astérix Légionnaire","10","Classique",true,"1967","Dargaud","Très bon état",25.00,35,"150","RAS",true],
-[12,"Astérix","Le bouclier Arverne","11","Classique",true,"1968","Dargaud","Très bon état",25.00,25,"150","Un peu jaunis",true],
-[13,"Astérix","Le bouclier Arverne","11","Classique",true,"1968","Dargaud","Bon état",4.74,10,"150","Dos supérieur recollé",true],
-[14,"Astérix","Astérix aux jeux Olympiques","12","Classique",true,"1968","Dargaud","État moyen",20.00,15,"120","Tranche droit grignotée",true],
-[15,"Astérix","Astérix aux jeux Olympiques","12","Classique",true,"1968","Dargaud","Très bon état",19.90,70,"120","Excellent état, RAS",true],
-[16,"Astérix","Astérix et le chaudron","13","Classique",true,"1969","Dargaud","État moyen",12.30,10,"120","Coins supérieur, inférieur gauche et droit abimés (à racheter)",true],
-[17,"Astérix","Astérix en Hispanie","14","Classique",true,"1969","Dargaud","Bon état",20.00,35,"100","Coin inférieur gauche un peu abimé",true],
-[18,"Astérix","La zizanie","15","Classique",true,"1970","Dargaud","Très bon état",10.35,20,"90","RAS",true],
-[19,"Astérix","Astérix chez les Helvètes","16","Classique",true,"1970","Dargaud","Très bon état",14.29,20,"80","RAS",true],
-[20,"Astérix","Le domaine des dieux","17","Classique",true,"1971","Dargaud","Bon état",15.00,15,"80","Coin inférieur gauche abimé",true],
-[21,"Astérix","Les lauriers de César","18","Classique",true,"1972","Dargaud","Très bon état",15.00,20,"80","RAS",true],
-[22,"Astérix","Le devin","19","Classique",true,"1972","Dargaud","Bon état",4.00,10,"80","Dos un peu craquelé",true],
-[23,"Astérix","Le devin","19","Classique",true,"1972","Dargaud","Très bon état",17.74,20,"80","RAS",true],
-[24,"Astérix","Astérix en Corse","20","Classique",true,"1973","Dargaud","Très bon état",17.74,20,"80","RAS",true],
-[25,"Astérix","Le cadeau de César","21","Classique",true,"1974","Dargaud","Très bon état",14.19,20,"70","Très bon état",true],
-[26,"Astérix","La grande traversée","22","Classique",true,"1975","Dargaud","Bon état",8.50,10,"50","Bout de couverture inférieure droit déchirée",true],
-[27,"Astérix","Obélix et compagnie","23","Classique",true,"1976","Dargaud","Très bon état",15.00,20,"50","RAS",true],
-[28,"Astérix","Astérix chez les Belges","24","Classique",true,"1979","Dargaud","Très bon état",10.00,15,"30","Très bon état",true],
-[29,"Astérix","Le Grand Fossé","25","Classique",true,"1980","Albert René","Très bon état",4.00,10,"15","RAS",true],
-[30,"Astérix","L'odyssée d'Astérix","26","Classique",true,"1981","Albert René","Très bon état",3.52,10,"15","RAS",true],
-[31,"Astérix","Le fils d'Astérix","27","Classique",true,"1983","Albert René","Très bon état",6.59,10,"15","Très bon état",true],
-[32,"Astérix","Astérix chez Rahazade","28","Classique",true,"1987","Albert René","Très bon état",3.52,6,"15","Étiquette de prix sur couverture",true],
-[33,"Astérix","La rose et le glaive","29","Classique",true,"1991","Albert René","Très bon état",7.00,7,"12","RAS",true],
-[34,"Astérix","La galère d'Obélix","30","Classique",true,"1996","Albert René","Neuf",7.10,7,"12","Neuf",true],
-[35,"Astérix","Astérix et la Transitalique","37","Classique",true,"2017","Albert René","Neuf",4.00,4,"Non coté","Neuf",true],
-[36,"Astérix","La Fille de Vercingétorix","38","Classique",true,"2019","Albert René","Neuf",4.00,4,"Non coté","Neuf",true],
-[37,"Astérix","Astérix et le Griffon","39","Classique",true,"2021","Albert René","Neuf",4.00,4,"Non coté","Neuf",true],
-[38,"Astérix","L'iris blanc","40","Classique",true,"2023","Hachette","Neuf",8.80,5,"Non coté","Neuf",true],
-[39,"Astérix","Astérix en Lusitanie","41","Classique",true,"2025","Hachette","Neuf",10.90,7,"Non coté","Neuf",true],
-[40,"Astérix","Uderzo croqué par ses amis","Unique","HS - Classique",true,"1996","Soleil production","Très bon état",6.00,6,"Non coté","R.A.S",true],
-[41,"Astérix","Astérix et Cléopâtre","Unique","HS - Archives",true,"2013","Atlas","Bon état",3.00,3,"Non coté","Un peu décoloré, EX-LIBRIS, mention 01",true],
-[42,"Astérix","Le tour de Gaule d'Astérix","Unique","HS - Archives",true,"2013","Atlas","Très bon état",10.00,10,"Non coté","Mention 01",true],
-[43,"Astérix","Astérix en Corse","Unique","HS - Archives",false,"2013","Atlas","Très bon état",10.00,10,"Non coté","RAS",true],
-[44,"Astérix","Astérix chez les Helvètes","Unique","HS - Archives",true,"2013","Atlas","Très bon état",10.00,10,"Non coté","Mention 01",true],
-[45,"Astérix","Astérix chez les Bretons","Unique","HS - Archives",true,"2013","Atlas","Moyen état",10.00,5,"Non coté","Manque l'image sur la couverture et sous blister",true],
-[46,"Astérix","Astérix aux jeux Olympiques","Unique","HS - Archives",true,"2013","Atlas","Très bon état",10.00,10,"Non coté","Mention 01",true],
-[47,"Barbe-Rouge","Le démon des Caraïbes","1","Classique - 1A",false,"1968","Dargaud","Très bon état",40.00,39,"40","Coins très légèrement tassés",true],
-[48,"Barbe-Rouge","Le Roi des Sept Mers","2","Classique - 2A",false,"1968","Dargaud","Très bon état",40.00,39,"40","Coins très légèrement tassés",true],
-[49,"Barbe-Rouge","Le fils de Barbe-rouge","3","Classique - 3b",false,"1975","Dargaud","Très bon état",4.16,10,"20","Attention coin supérieur dos fragile quand on ouvre la BD",true],
-[50,"Barbe-Rouge","Les disparus du Faucon noir","21","Classique",true,"1982","Novedi","Très bon état",10.83,15,"20","R.A.S",true],
-[51,"Barbe-Rouge","Le trafiquants de bois d'ébène","22","Classique",true,"1983","Novedi","Très bon état",15.00,15,"20","Très bon état. Très légère trace sur la tranche haute du cahier",true],
-[52,"Barbe-Rouge","L'or maudit de huacapac","23","Classique",true,"1984","Novedi","Très bon état",10.83,15,"18","Coin inférieur droit très légèrement abîmé",true],
-[53,"Barbe-Rouge","Intégral - Nouvelle étidition","1","Intégral",false,"2015","Dargaud","Très bon état",22.95,17,"Non coté","R.A.S",true],
-[54,"Barbe-Rouge","Intégral - Nouvelle étidition","2","Intégral",false,"2023","Dargaud","Très bon état",22.95,17,"Non coté","R.A.S",true],
-[55,"Barbe-Rouge","Intégral - Nouvelle étidition","3","Intégral",false,"2015","Dargaud","Très bon état",14.00,17,"Non coté","R.A.S",true],
-[56,"Barbe-Rouge","Intégral - Nouvelle étidition","4","Intégral",false,"2015","Dargaud","Bon état",14.00,17,"Non coté","Coin supérieur gauche un peu abimé",true],
-[57,"Barbe-Rouge","Intégral - Nouvelle étidition","5","Intégral",false,"2016","Dargaud","Très bon état",14.00,17,"Non coté","R.A.S",true],
-[58,"Barbe-Rouge","Intégral - Nouvelle étidition","6","Intégral",true,"2015","Dargaud","Très bon état",14.00,17,"Non coté","R.A.S",true],
-[59,"Barbe-Rouge","Intégral - Nouvelle étidition","7","Intégral",true,"2016","Dargaud","Très bon état",14.00,17,"Non coté","R.A.S",true],
-[60,"Barbe-Rouge","Le démon des Caraïbes","1","Petit format 16/22",true,"1977","Dargaud","Bon état",2.00,4,"10-15","Quelques tâches",true],
-[61,"Blacksad","Quelque part entre les ombres","1","Classique",false,"2022","Dargaud","Bon état",12.00,12,"Non coté","Coins un peu tassés",true],
-[62,"Blacksad","Artic-Nation","2","Classique",false,"2004","Dargaud","Très bon état",13.00,12,"Non coté","RAS",true],
-[63,"Blacksad","Âme Rouge","3","Classique",false,"2013","Dargaud","Bon état",10.00,12,"Non coté","Coins en bas du dos un peu abimés",true],
-[64,"Blacksad","L'enfer, le silence","4","Classique",false,"2013","Dargaud","Très bon état",12.00,12,"Non coté","RAS",true],
-[65,"Blacksad","Amarillo","5","Classique",false,"2022","Dargaud","Bon état",12.00,12,"Non coté","Coins inférieur gauche un peu abimé",true],
-[66,"Blueberry","Fort Navajo","1","Classique",false,"1972 - 1c","Dargaud","Bon état",3.99,15,"30","Trace d'impression rougeâtre au dos",true],
-[67,"Blueberry","Tonnerre à l'ouest","2","Classique",false,"1977","Dargaud","Très bon état",6.50,7,"Non coté","Coin légèrement tassé, D.T : Angel Face",true],
-[68,"Blueberry","L'aigle solitaire","3","Classique",false,"1985","Dargaud","Bon état",3.99,7,"Non coté","Dernier titre ; nez cassé",true],
-[69,"Blueberry","Le cavalier perdu","4","Classique",false,"1976","Dargaud","Bon état",3.99,7,"Non coté","Dernier titre : La jeunesse de Blueberry",true],
-[70,"Blueberry","La piste des Navajos","5","Classique",false,"1976","Dargaud","Bon état",10.00,7,"Non coté","Petite tâche au dos, D.T : la jeunesse de Blueberry",true],
-[71,"Blueberry","L'homme à l'étoile d'argent","6","Classique",false,"1979","Dargaud","Très bon état",7.50,7,"Non coté","Très bon état, R.A.S, D.T : Un Jankee nommé Blueberry",true],
-[72,"Blueberry","Le cheval de fer","7","Classique",false,"1983","Dargaud","Bon état",3.99,7,"Non coté","Dernier titre : nez cassé",true],
-[73,"Blueberry","L'homme au poing d'acier","8","Classique - 8d",false,"1974","Dargaud","Très bon état",4.16,10,"25","Dos très légèrement déclassé - D.T : Ballade pour un cercueil",true],
-[74,"Blueberry","La piste des sioux","9","Classique - 9e",false,"1976","Dargaud","Très bon état",15.00,15,"Non coté","D.T : La jeunesse de Blueberry",true],
-[75,"Blueberry","Chihuahua Pearl","13","Classique - 13b",false,"1974","Dargaud","Bon état",4.16,7,"20","Coins inférieur droite un peu abîmé - dernière page un peu collée, D.T : L'homme qui valait 500 000 $",true],
-[76,"Blueberry","L'homme qui valait 500 000$","14","Classique - 14b",false,"1974","Dargaud","Bon état",4.16,8,"20","Dos inférieur avant un peu abimé - D.T : L'homme qui valait 500 000$",true],
-[77,"Blueberry","La dernière carte","21","Classique",false,"1992","Dupuis","Très bon état",5.00,5,"Non coté","Dernier titre : Mister Blueberry",true],
-[78,"Buddy Longway","L'ennemi","2","Classique",true,"1975","Dargaud","Bon état +",10.83,10,"20","Légère trace sur le 4ème plat",true],
-[79,"Buddy Longway","L'hiver des chevaux","7","Classique",true,"1978","Dargaud","Très bon état",5.00,9,"15","Étiquette collée",true],
-[80,"Buddy Longway","Premières chasses","9","Classique",true,"1980","Dargaud","Très bon état",10.83,10,"15","R.A.S",true],
-[81,"Buddy Longway","Le démon blanc","10","Classique",true,"1981","Le Lombard","Très bon état",5.50,10,"15","Coins inférieur droit très très légèrement tassé",true],
-[82,"Buddy Longway","La vengeance","11","Classique",true,"1982","Le Lombard","Très bon état",5.50,10,"15","Étiquette collée au dos",true],
-[83,"Buddy Longway","Capitaine Rayan","12","Classique",true,"1983","Le Lombard","Très bon état",5.00,9,"18","Coins dos légèrement tassés + petite étiquette",true],
-[84,"Buddy Longway","Le vent sauvage","13","Classique",true,"1984","Le Lombard","Très bon état",4.74,9,"18","Coins dos légèrement tassés",true],
-[85,"Buddy Longway","La robe noire","14","Classique",true,"1985","Le Lombard","Très bon état",10.83,10,"20","R.A.S",true],
-[86,"Buddy Longway","Hooka-Hey","15","Classique",true,"1986","Le Lombard","Très bon état",10.83,10,"20","R.A.S",true],
-[87,"Buddy Longway","Révolte","19","Classique",true,"2004","Le Lombard","Très bon état",10.40,15,"30","Presque neuf",true],
-[88,"Buddy Longway","La source","20","Classique",true,"2006","Le Lombard","Très bon état",10.40,15,"30","Presque neuf",true],
-[89,"Buddy Longway","Chinook pour la vie","1","Intégrale",false,"2022","Le Lombard","Très bon état",27.45,22,"Non coté","RAS",true],
-[90,"Buddy Longway","Kathleen et Jérémie","2","Intégrale",false,"2022","Le Lombard","Très bon état",27.45,22,"Non coté","RAS",true],
-[91,"Buddy Longway","La folie des hommes","3","Intégrale",false,"2022","Le Lombard","Très bon état",27.45,22,"Non coté","RAS",true],
-[92,"Buddy Longway","Loin des siens","4","Intégrale",false,"2025","Le Lombard","Très bon état",27.45,22,"Non coté","RAS",true],
-[93,"Buddy Longway","Ensemble à jamais","5","Intégrale",false,"2024","Le Lombard","Très bon état",27.45,22,"Non coté","RAS",true],
-[94,"Chateau des Animaux","Miss Bengalore","1","Classique",false,"2022","Casterman","Très bon état",12.00,12,"Non coté","RAS",true],
-[95,"Comanche","Red Dust","1","Classique - 1b",false,"1976","Dargaud","Très bon état",4.16,6,"Non coté","Quelques tâches de rousseurs",true],
-[96,"Comanche","Volume 1","1","Intégrale",false,"2024","Le Lombard","Neuf",47.00,40,"Non coté","Neuf, du tome 1 à 5",true],
-[97,"De Cape et de Crocs","Le secret du Janissaire","1","Classique",false,"2010","Delcourt","État moyen",3.00,5,"Non coté","Coin inférieur gauche abimé, dernier titre paru T9",true],
-[98,"I.R.$","La voie fiscale","1","Classique",false,"2001","Le Lombard","État moyen",2.00,3,"Non coté","Dos tranché et 3 tomes parus",true],
-[99,"I.R.$","La stratégie Hagen","2","Classique",false,"2003","Le Lombard","Bon état",2.00,3,"Non coté","Coins un peu abimés et 5 tomes parus",true],
-[100,"I.R.$","Blue ice","3","Le Figaro",true,"2013","Le Lombard","Très bon état",3.00,3,"Non coté","Dos toilé",true],
-[101,"Il faut flinguer Ramirez","Acte 1","1","Classique",false,"2022","Glénat","Très bon état",9.00,10,"Non coté","Achevé d'imprimer en 2022",true],
-[102,"Indes Fourbes (Les)","Indes Fourbes (Les)","Unique","Classique",false,"2025","Delcourt","Très bon état",34.90,25,"Non coté","RAS",true],
-[103,"Jehan Pistolet","Corsaire prodigieux","1","Classique",false,"1998","Éditions Albert René","Très bon état",3.00,3,"Non coté","Dernier titre paru : Corsaire du Roy",true],
-[104,"Jonathan Cartland","Le Fantôme de Wah-kee","3","Classique - 3a",true,"1979","Dargaud","État moyen",1.00,5,"10","Album recollé + petit trou page 41",true],
-[105,"Largo Winch","L'héritier","1","Classique",false,"2001","Dupuis","Très bon état",3.00,3,"Non coté","Dernier titre paru : Golden Gate",true],
-[106,"Largo Winch","Le Groupe W","2","Classique - 1re rééd",false,"1992","Dupuis","Très bon état",3.99,3,"Non coté","Dernier titre paru : OPA",true],
-[107,"Largo Winch","O.P.A","3","Classique",true,"1992","Dupuis","Très bon état",3.99,6,"20-25","RAS",true],
-[108,"Largo Winch","Business Blues","4","Classique",true,"1993","Dupuis","Très bon état",3.99,6,"10-15","RAS",true],
-[109,"Largo Winch","H","5","Classique",true,"1994","Dupuis","Très bon état",3.99,6,"10-15","RAS",true],
-[110,"Largo Winch","Dutch Connection","6","Classique",true,"1995","Dupuis","Très bon état",3.99,6,"10-15","RAS",true],
-[111,"Largo Winch","L'heure du tigre","8","Classique",true,"1997","Dupuis","Très bon état",3.99,6,"10-15","RAS",true],
-[112,"Largo Winch","Voir Venise","9","Classique",true,"1988","Dupuis","Très bon état",3.99,6,"10-15","RAS",true],
-[113,"La Terre Verte","La Terre Verte","Unique","Classique",true,"2025","Delcourt","Neuf",34.95,30,"Non coté","Neuf",true],
-[114,"Long John Silver","Lady Vivian Hastings","1","Classique",false,"2010","Dargaud","Bon état",11.00,12,"Non coté","Coins inférieur droit légèrement abimé",true],
-[115,"Long John Silver","Neptune","2","Classique",false,"2010","Dargaud","Très bon état",11.00,12,"Non coté","RAS",true],
-[116,"Lucky Luke","La mine d'or de Dick Digger","1","Classique",false,"1988","Dupuis","Très bon état",6.00,6,"Non coté","Dernier titre : Tortillas pour les Daltons",true],
-[117,"Marie l'Aventure","La mort rouge","1","Classique",true,"1987","Dargaud","Très bon état",6.00,5,"Non coté","RAS",true],
-[118,"Marsupilami","La queue du Marsupilami","1","Classique",false,"1991","Mardi Productions","Bon état",2.00,5,"Non coté","Dernier titre paru : l'or boavista (T7)",true],
-[119,"Nouvelle France","Nouvelle France","1","Classique",true,"2026","Daniel Maghen","Neuf",23.00,18,"Non coté","Offert par ma chérie",true],
-[120,"Pirates","Un autre monde","1","Classique",false,"2001","Casterman","Bon état",3.00,3,"Non coté","Coins un peu abimés et dernier titre paru : Paloma",true],
-[121,"Tanguy et Laverdure","Lieutenant Double Bang","13","Classique",true,"1970","Dargaud","Bon état",1.00,15,"50","Jaunis et odeur de cigarette",true],
-[122,"Tintin","Au pays des Soviets","1","Classique",false,"2023","Casterman","Neuf",12.50,8,"Non coté","Neuf",true],
-[123,"Tintin","Tintin au Congo","2","Classique",false,"2024","Casterman","Neuf",12.50,8,"Non coté","Neuf",true],
-[124,"Tintin","Tintin en Amérique","3","Classique",false,"2024","Casterman","Neuf",12.50,8,"Non coté","Neuf",true],
-[125,"Tintin","Les cigares du Pharaon","4","Classique",false,"2024","Casterman","Neuf",12.50,8,"Non coté","Neuf",true],
-[126,"Tintin","Le lotus","5","Classique",false,"2024","Casterman","Neuf",12.50,8,"Non coté","Neuf",true],
-[127,"Tintin","L'étoile mystérieuse","10","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[128,"Tintin","Le secret de la licorne","11","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Petites tâches",true],
-[129,"Tintin","Les 7 boules de cristal","13","Classique - B39 Bis",false,"1970-1971","Casterman","État moyen",10.00,7,"10-15","Coins abîmés, cahier qui bouge un peu",true],
-[130,"Tintin","Le temple du soleil","14","Classique",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[131,"Tintin","Au pays de l'or noir","15","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[132,"Tintin","Objectif Lune","16","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré et tâches",true],
-[133,"Tintin","Coke en stock","19","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[134,"Tintin","Tintin au Tibet","20","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[135,"Tintin","Vol 714 pour Sydney","22","Classique - C8",false,"1988-1992","Casterman","Bon état",4.30,5,"Non coté","Dos décoloré",true],
-[136,"Tintin","Tintin et les Picaros","23","Classique - C1",true,"1976","Casterman","Très bon état",30.00,20,"120","24 traductions",true],
-[137,"Tintin","Tintin au pays des Soviets","1","Fac-similé (N&B) G.F",true,"1981","Casterman","Bon état",25.00,25,"50","Trace d'étiquette au dos - n°1772",true],
-[138,"Tintin","Tintin en Amérique","3","Fac-similé (N&B) G.F",true,"1983","Casterman","Très bon état",25.00,40,"50","RAS - n°1804",true],
-[139,"Tintin","Les cigares du Pharaon","4","Fac-similé (N&B) G.F",true,"1984","Casterman","Très bon état",34.00,40,"50","Très bon état - R.A.S",true],
-[140,"Tintin","L'île noire","7","Fac-similé (N&B) G.F",true,"1987","Casterman","Très bon état",25.00,30,"20-25","RAS - n°1227",true],
-[141,"Tintin","Le sceptre d'Ottokar","8","Fac-similé (N&B) G.F",true,"1988","Casterman","Très bon état",22.96,30,"20-25","RAS",true],
-[142,"Tintin","Le crabe aux pinces d'or","9","Fac-similé (N&B) G.F",true,"1989","Casterman","Très bon état",24.44,30,"20-25","RAS - n°3650",true],
-[143,"Tintin","L'oreille cassée","6","Fac-similé (N&B) P.F",false,"2012","Casterman","Très bon état",10.00,7,"Non coté","RAS",true],
-[144,"Tintin","L'île noire","7","Fac-similé (N&B) P.F",false,"2012","Casterman","Très bon état",10.00,7,"Non coté","RAS",true],
-[145,"Tintin","L'affaire tournesol","18","Fac-similé couleur",true,"2005","Casterman","Très bon état",25.00,20,"Non coté","Sous blister",true],
-[146,"Tintin","L'oreille cassée","6","HS - Archives",true,"2010","Atlas","Très bon état",7.00,13,"Non coté","RAS et figurine en étain",true],
-[147,"Valérian","La cité des eaux mouvementées","1","Classique",false,"1981","Dargaud","Bon état",1.66,5,"Non coté","Tampon librairie + dos un peu décallé + nouvelle couverture et DARGAUD Editeur",true],
-[148,"Valérian","Les héros de l'équinoxe","8","Classique",true,"1978","Dargaud","Moyen état",1.66,12,"25","Tampon librairie + coiffes et coins un peu abimés",true],
-[149,"Valérian","Les foudres d'hypsis","12","Classique",true,"1985","Dargaud","Très bon état",1.66,15,"18","Tampon librairie",true],
-[150,"Yakari","Sekred Kurunig","6","Classique en breton",true,"1984","Keit Vimp Beo","Très bon état",3.00,3,"Non coté","En langue bretonne",true]
+[1,"Amourante (L')","Amourante (L')","Unique","Classique",true,"2025","Glénat","Neuf","Non coté","Neuf",true],
+[2,"Astérix","Astérix le gaulois","1","Classique - 1C",false,"1965","Pilote","Très bon état","120","Très bon état, brillance absolue de la couverture, cahier parfait. Coin inférieur droit légèrement abîmé",true],
+[3,"Astérix","Astérix le gaulois","1","Classique",false,"1989","Dargaud","Très bon état","Non coté","Légère trace de frottemment au dos",true],
+[4,"Astérix","La serpe d'or","2","Classique",false,null,null,null,null,"à acheter",false],
+[5,"Astérix","Astérix et les Goths","3","Classique",false,null,null,null,null,"à acheter",false],
+[6,"Astérix","Astérix Gladiateur","4","Classique - 4a",false,"1965","Pilote","Très bon état","180","RAS",true],
+[7,"Astérix","Le tour de Gaule d'Astérix","5","Classique - 5b",false,"1965","Pilote","Très bon état","100","RAS",true],
+[8,"Astérix","Astérix et Cléopâtre","6","Classique",false,null,null,null,null,"à acheter",false],
+[9,"Astérix","Le combat des chefs","7","Classique",true,"1966","Dargaud","Très mauvais état","250","Coins supérieur et inférieur déchirés",true],
+[10,"Astérix","Astérix chez les Bretons","8","Classique",true,"1966","Dargaud","Très bon état","150","Coins très légèrement tassés",true],
+[11,"Astérix","Astérix et les Normands","9","Classique",true,"1966","Dargaud","Très bon état","150","RAS",true],
+[12,"Astérix","Astérix Légionnaire","10","Classique",true,"1967","Dargaud","Très bon état","150","RAS",true],
+[13,"Astérix","Le bouclier Arverne","11","Classique",true,"1968","Dargaud","Très bon état","150","Un peu jaunis",true],
+[14,"Astérix","Le bouclier Arverne","11","Classique",true,"1968","Dargaud","Bon état","150","Dos supérieur recollé",true],
+[15,"Astérix","Astérix aux jeux Olympiques","12","Classique",true,"1968","Dargaud","Etat moyen","120","Tranche droit grignotée",true],
+[16,"Astérix","Astérix aux jeux Olympiques","12","Classique",true,"1968","Dargaud","Très bon état","120","Excellent état, RAS",true],
+[17,"Astérix","Astérix et le chaudron","13","Classique",true,"1969","Dargaud","Etat moyen","120","Coins supérieur, inférieur gauche et droit abimés (à racheter)",true],
+[18,"Astérix","Astérix en Hispanie","14","Classique",true,"1969","Dargaud","Bon état","100","Coin inférieur gauche un peu abimé",true],
+[19,"Astérix","La zizanie","15","Classique",true,"1970","Dargaud","Très bon état","90","RAS",true],
+[20,"Astérix","Astérix chez les Helvètes","16","Classique",true,"1970","Dargaud","Très bon état","80","RAS",true],
+[21,"Astérix","Le domaine des dieux","17","Classique",true,"1971","Dargaud","Bon état","80","Coin inférieur gauche abimé",true],
+[22,"Astérix","Les lauriers de césar","18","Classique",true,"1972","Dargaud","Très bon état","80","RAS",true],
+[23,"Astérix","Le devin","19","Classique",true,"1972","Dargaud","Bon état","80","Dos un peu craquelé",true],
+[24,"Astérix","Le devin","19","Classique",true,"1972","Dargaud","Très bon état","80","RAS",true],
+[25,"Astérix","Astérix en Corse","20","Classique",true,"1973","Dargaud","Très bon état","80","RAS",true],
+[26,"Astérix","Le cadeau de César","21","Classique",true,"1974","Dargaud","Très bon état","70","Très bon état",true],
+[27,"Astérix","La grande traversée","22","Classique",true,"1975","Dargaud","Bon état","50","Bout de couverture inférieure droit déchirée",true],
+[28,"Astérix","Obélix et compagnie","23","Classique",true,"1976","Dargaud","Très bon état","50","RAS",true],
+[29,"Astérix","Astérix chez les Belges","24","Classique",true,"1979","Dargaud","Très bon état","30","Très bon état",true],
+[30,"Astérix","Le Grand Fossé","25","Classique",true,"1980","Albert René","Très bon état","15","RAS",true],
+[31,"Astérix","L'odyssée d'Astérix","26","Classique",true,"1981","Albert René","Très bon état","15","RAS",true],
+[32,"Astérix","Le fils d'Astérix","27","Classique",true,"1983","Albert René","Très bon état","15","Très bon état",true],
+[33,"Astérix","Astérix chez Rahazade","28","Classique",true,"1987","Albert René","Très bon état","15","Étiquette de prix sur couverture",true],
+[34,"Astérix","La rose et le glaive","29","Classique",true,"1991","Albert René","Très bon état","12","RAS",true],
+[35,"Astérix","La galère d'Obélix","30","Classique",true,"1996","Albert René","Neuf","12","Neuf",true],
+[36,"Astérix","Astérix et la Transitalique","37","Classique",true,"2017","Albert René","Neuf","Non coté","Neuf",true],
+[37,"Astérix","La Fille de Vercingétorix","38","Classique",true,"2019","Albert René","Neuf","Non coté","Neuf",true],
+[38,"Astérix","Astérix et le Griffon","39","Classique",true,"2021","Albert René","Neuf","Non coté","Neuf",true],
+[39,"Astérix","L'iris blanc","40","Classique",true,"2023","Hachette","Neuf","Non coté","Neuf",true],
+[40,"Astérix","Astérix en Lusitanie","41","Classique",true,"2025","Hachette","Neuf","Non coté","Neuf",true],
+[41,"Astérix","Uderzo croqué par ses amis","Unique","HS - Classique",true,"1996","Soleil production","Très bon état","Non coté","R.A.S",true],
+[42,"Astérix","Astérix et Cléopâtre","Unique","HS - Archives",true,"2013","Atlas","Bon état","Non coté","Un peu decoloré, EX-LIBRIS, mention 01",true],
+[43,"Astérix","Le tour de Gaule d'Astérix","Unique","HS - Archives",true,"2013","Atlas","Très bon état","Non coté","Mention 01",true],
+[44,"Astérix","Astérix en Corse","Unique","HS - Archives",false,"2013","Atlas","Très bon état","Non coté","RAS",true],
+[45,"Astérix","Astérix chez les Helvètes","Unique","HS - Archives",true,"2013","Atlas","Très bon état","Non coté","Mention 01",true],
+[46,"Astérix","Astérix chez les Bretons","Unique","HS - Archives",true,"2013","Atlas","Moyen état","Non coté","Manque l'image sur la couverture et sous blister",true],
+[47,"Astérix","Astérix aux jeux Olympiques","Unique","HS - Archives",true,"2013","Atlas","Très bon état","Non coté","Mention 01",true],
+[48,"Barbe-Rouge","Le démon des Caraïbes","1","Classique - 1A",false,"1968","Dargaud","Très bon état","40","Coins très légèrement tassés",true],
+[49,"Barbe-Rouge","Le Roi des Sept Mers","2","Classique - 2A",false,"1968","Dargaud","Très bon état","40","Coins très légèrement tassés",true],
+[50,"Barbe-Rouge","Le fils de Barbe-rouge","3","Classique - 3b",false,"1975","Dargaud","Très bon état","20","Attention coin supérieur dos fragile quand on ouvre la BD",true],
+[51,"Barbe-Rouge","Les disparus du Faucon noir","21","Classique",true,"1982","Novedi","Très bon état","20","R.A.S",true],
+[52,"Barbe-Rouge","Le trafiquants de bois d'ébène","22","Classique",true,"1983","Novedi","Très bon état","20","Très bon état. Très lège trace sur la tranche haute du cahier",true],
+[53,"Barbe-Rouge","L'or maudit de huacapac","23","Classique",true,"1984","Novedi","Très bon état","18","Coin inférieur droit très légèrement abîmé",true],
+[54,"Barbe-Rouge","Intégral - Nouvelle étidition","1","Intégral",false,"2015","Dargaud","Très bon état","Non coté","R.A.S",true],
+[55,"Barbe-Rouge","Intégral - Nouvelle étidition","2","Intégral",false,"2023","Dargaud","Très bon état","Non coté","R.A.S",true],
+[56,"Barbe-Rouge","Intégral - Nouvelle étidition","3","Intégral",false,"2015","Dargaud","Très bon état","Non coté","R.A.S",true],
+[57,"Barbe-Rouge","Intégral - Nouvelle étidition","4","Intégral",false,"2015","Dargaud","Bon état","Non coté","Coin supérieur gauche un peu abimé",true],
+[58,"Barbe-Rouge","Intégral - Nouvelle étidition","5","Intégral",false,"2016","Dargaud","Très bon état","Non coté","R.A.S",true],
+[59,"Barbe-Rouge","Intégral - Nouvelle étidition","6","Intégral",true,"2015","Dargaud","Très bon état","Non coté","R.A.S",true],
+[60,"Barbe-Rouge","Intégral - Nouvelle étidition","7","Intégral",true,"2016","Dargaud","Très bon état","Non coté","R.A.S",true],
+[61,"Barbe-Rouge","Le démon des Caraïbes","1","Petit format 16/22",true,"1977","Dargaud","Bon état","10-15","Quelques tâches",true],
+[62,"Blacksad","Quelque part entre les ombres","1","Classique",false,"2022","Dargaud","Bon état","Non coté","Coins un peu tassés",true],
+[63,"Blacksad","Artic-Nation","2","Classique",false,"2004","Dargaud","Très bon état","Non coté","RAS",true],
+[64,"Blacksad","Âme Rouge","3","Classique",false,"2013","Dargaud","Bon état","Non coté","Coins en bas du dos un peu abimés",true],
+[65,"Blacksad","L'enfer, le silence","4","Classique",false,"2013","Dargaud","Très bon état","Non coté","RAS",true],
+[66,"Blacksad","Amarillo","5","Classique",false,"2022","Dargaud","Bon état","Non coté","Coins inférieur gauche un peu abimé",true],
+[67,"Blueberry","Fort Navajo","1","Classique",false,"1972 - 1c","Dargaud","Bon état","30","Trace d'impression rougeâtre au dos",true],
+[68,"Blueberry","Tonnerre à l'ouest","2","Classique",false,"1977","Dargaud","Très bon état","Non coté","Coin légèrement tassé, D.T : Angel Face",true],
+[69,"Blueberry","L'aigle solitaire","3","Classique",false,"1985","Dargaud","Bon état","Non coté","Dernier titre ; nez cassé",true],
+[70,"Blueberry","Le cavalier perdu","4","Classique",false,"1976","Dargaud","Bon état","Non coté","Dernier titre : La jeunesse de Blueberry",true],
+[71,"Blueberry","La piste des Navajos","5","Classique",false,"1976","Dargaud","Bon état","Non coté","Petite tâche au dos, D.T : la jeunesse de blueberry",true],
+[72,"Blueberry","L'homme à l'étoile d'argent","6","Classique",false,"1979","Dargaud","Très bon état","Non coté","Très bon état, R.A.S, D.T : Un Janckee nommé blueberry",true],
+[73,"Blueberry","Le cheval de fer","7","Classique",false,"1983","Dargaud","Bon état","Non coté","Dernier titre : nez cassé",true],
+[74,"Blueberry","L'homme au poing d'acier","8","Classique - 8d",false,"1974","Dargaud","Très bon état","25","Dos très légèrement déclaré - D.T : Ballade pour un cercueil",true],
+[75,"Blueberry","La piste des sioux","9","Classique - 9e",false,"1976","Dargaud","Très bon état","Non coté","D.T La jeunesse de Blueberry",true],
+[76,"Blueberry","Chihuahua Pearl","13","Classique - 13b",false,"1974","Dargaud","Bon état","20","Coins inférieur droite un peu abîmé - dernière page un peu collée, D.T : L'homme qui valait 500 000,00 $",true],
+[77,"Blueberry","L'homme qui valait 500 000$","14","Classique - 14b",false,"1974","Dargaud","Bon état","20","Dos inférieur avant un peu abimé - D.T : L'homme qui valait 500 000$",true],
+[78,"Blueberry","La dernière carte","21","Classique",false,"1992","Dupuis","Très bon état","Non coté","Dernier titre : Mister Blueberry",true],
+[79,"Buddy Longway","L'ennemi","2","Classique",true,"1975","Dargaud","Bon état +","20","Légère trace sur le 4ème plat",true],
+[80,"Buddy Longway","L'hiver des chevaux","7","Classique",true,"1978","Dargaud","Très bon état","15","Etiquette collée",true],
+[81,"Buddy Longway","Premières chasses","9","Classique",true,"1980","Dargaud","Très bon état","15","R.A.S",true],
+[82,"Buddy Longway","Le démon blanc","10","Classique",true,"1981","Le Lombard","Très bon état","15","Coins inférieur droit très très légèrement tassé",true],
+[83,"Buddy Longway","La vengeance","11","Classique",true,"1982","Le Lombard","Très bon état","15","Etiquette collée au dos",true],
+[84,"Buddy Longway","Capitaine Rayan","12","Classique",true,"1983","Le Lombard","Très bon état","18","Coins dos légèrement tassés + petite étiquette",true],
+[85,"Buddy Longway","Le vent sauvage","13","Classique",true,"1984","Le Lombard","Très bon état","18","Coins dos légèrement tassés",true],
+[86,"Buddy Longway","La robe noire","14","Classique",true,"1985","Le Lombard","Très bon état","20","R.A.S",true],
+[87,"Buddy Longway","Hooka-Hey","15","Classique",true,"1986","Le Lombard","Très bon état","20","R.A.S",true],
+[88,"Buddy Longway","Révolte","19","Classique",true,"2004","Le Lombard","Très bon état","30","Presque neuf",true],
+[89,"Buddy Longway","La source","20","Classique",true,"2006","Le Lombard","Très bon état","30","Presque neuf",true],
+[90,"Buddy Longway","Chinook pour la vie","1","Intégrale",false,"2022","Le Lombard","Très bon état","Non coté","RAS",true],
+[91,"Buddy Longway","Kathleen et Jérémie","2","Intégrale",false,"2022","Le Lombard","Très bon état","Non coté","RAS",true],
+[92,"Buddy Longway","La folie des hommes","3","Intégrale",false,"2022","Le Lombard","Très bon état","Non coté","RAS",true],
+[93,"Buddy Longway","Loin des siens","4","Intégrale",false,"2025","Le Lombard","Très bon état","Non coté","RAS",true],
+[94,"Buddy Longway","Ensemble à jamais","5","Intégrale",false,"2024","Le Lombard","Très bon état","Non coté","RAS",true],
+[95,"Chateau des Animaux","Miss Bengalore","1","Classique",false,"2022","Casterman","Très bon état","Non coté","RAS",true],
+[96,"Comanche","Red Dust","1","Classique - 1b",false,"1976","Dargaud","Très bon état","Non coté","Quelques tâches de rousseurs",true],
+[97,"Comanche","Volume 1","1","Intégrale",false,"2024","Le Lombard","Neuf","Non coté","Neuf, du tome 1 à 5",true],
+[98,"De Cape et de Crocs","Le secret du Janissaire","1","Classique",false,"2010","Delcourt","Etat moyen","Non coté","Coin inférieur gauche abimé, dernier titre paru T9",true],
+[99,"I.R.$","La voie fiscale","1","Classique",false,"2001","Le Lombard","État moyen","Non coté","Dos tranché et 3 tomes parus",true],
+[100,"I.R.$","La stratégie Hagen","2","Classique",false,"2003","Le Lombard","Bon état","Non coté","Coins un peu abimés et 5 tomes parus",true],
+[101,"I.R.$","Blue ice","3","Le Figaro",true,"2013","Le Lombard","Très bon état","Non coté","Dos toilé",true],
+[102,"Il faut flinguer Ramirez","Acte 1","1","Classique",false,"2022","Glénat","Très bon état","Non coté","Achevé d'imprimer en 2022",true],
+[103,"Indes Fourbes (Les)","Indes Fourbes (Les)","Unique","Classique",false,"2025","Delcourt","Très bon état","Non coté","RAS",true],
+[104,"Jehan Pistolet","Corsaire prodigieux","1","Classique",false,"1998","Éditions Albert René","Très bon état","Non coté","Dernier titre paru : corsaire du Roy",true],
+[105,"Jonathan Cartland","Le Fantôme de Wah-kee","3","Classique - 3a",true,"1979","Dargaud","Etat moyen","10","Album recollé + petit trou page 41",true],
+[106,"Largo Winch","L'héritier","1","Classique",false,"2001","Dupuis","Très bon état","Non coté","Dernier titre paru : Golden gate",true],
+[107,"Largo Winch","Le Groupe W","2","Classique",false,"1992 - 1re rééd","Dupuis","Très bon état","Non coté","Dernier titre paru : OPA",true],
+[108,"Largo Winch","O.P.A","3","Classique",true,"1992","Dupuis","Très bon état","20-25","RAS",true],
+[109,"Largo Winch","Business Blues","4","Classique",true,"1993","Dupuis","Très bon état","10-15","RAS",true],
+[110,"Largo Winch","H","5","Classique",true,"1994","Dupuis","Très bon état","10-15","RAS",true],
+[111,"Largo Winch","Dutch Connection","6","Classique",true,"1995","Dupuis","Très bon état","10-15","RAS",true],
+[112,"Largo Winch","L'heure du tigre","8","Classique",true,"1997","Dupuis","Très bon état","10-15","RAS",true],
+[113,"Largo Winch","Voir Venise","9","Classique",true,"1988","Dupuis","Très bon état","10-15","RAS",true],
+[114,"Largo Winch","La frontière de la nuit","23","Classique",true,"2021","Dupuis","Très bon état","10-15","RAS (Bibliothèque gratuite) - Tirage limité",true],
+[115,"La Terre Verte","La Terre Verte","Unique","Classique",true,"2025","Delcourt","Neuf","Non coté","Neuf",true],
+[116,"Long John Silver","Lady Vivian Hastings","1","Classique",false,"2010","Dargaud","Bon état","Non coté","Coins inférieur droit légèrement abimé",true],
+[117,"Long John Silver","Neptune","2","Classique",false,"2010","Dargaud","Très bon état","Non coté","RAS",true],
+[118,"Lucky Luke","La mine d'or de Dick Digger","1","Classique",false,"1988","Dupuis","Très bon état","Non coté","Dernier titre : tortillas pour les Daltons",true],
+[119,"Marie l'Aventure","La mort rouge","1","Classique",true,"1987","Dargaud","Très bon état","Non coté","RAS",true],
+[120,"Marsupilami","La queue du Marsupilami","1","Classique",false,"1991","Mardi Productions","Bon état","Non coté","Dernier titre paru : l'or boavista (T7)",true],
+[121,"Nouvelle France","Nouvelle France","1","Classique",true,"2026","Daniel Maghen","Neuf","Non coté","Offert par ma chérie",true],
+[122,"Pirates","Un autre monde","1","Classique",false,"2001","Casterman","Bon état","Non coté","Coins un peu abimés et dernier titre paru : Paloma",true],
+[123,"Tanguy et Laverdure","Lieutenan Double Bang","13","Classique",true,"1970","Dargaud","Bon état","50","Jaunis et odeur de cigarette",true],
+[124,"Tintin","Au pays des Soviets","1","Classique",false,"2023","Casterman","Neuf","Non coté","Neuf",true],
+[125,"Tintin","Tintin au Congo","2","Classique",false,"2024","Casterman","Neuf","Non coté","Neuf",true],
+[126,"Tintin","Tintin en Amérique","3","Classique",false,"2024","Casterman","Neuf","Non coté","Neuf",true],
+[127,"Tintin","Les cigares du Pharaon","4","Classique",false,"2024","Casterman","Neuf","Non coté","Neuf",true],
+[128,"Tintin","Le lotus","5","Classique",false,"2024","Casterman","Neuf","Non coté","Neuf",true],
+[129,"Tintin","L'étoile mystérieuse","10","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[130,"Tintin","Le secret de la licorne","11","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Petites tâches",true],
+[131,"Tintin","Les 7 boules de cristal","13","Classique - B39 Bis",false,"19870-1971","Casterman","Etat moyen","10-15","Coins abîmés, cahier qui bouge un peu",true],
+[132,"Tintin","Le temple du soleil","14","Classique",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[133,"Tintin","Au pays de l'or noir","15","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[134,"Tintin","Objectif Lune","16","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré et tâches",true],
+[135,"Tintin","Coke en stock","19","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[136,"Tintin","Tintin au Tibet","20","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[137,"Tintin","Vol 714 pour Sydney","22","Classique - C8",false,"1988-1992","Casterman","Bon état","Non coté","Dos décoloré",true],
+[138,"Tintin","Tintin et les Picaros","23","Classique - C1",true,"1976","Casterman","Très bon état","120","24 traductions",true],
+[139,"Tintin","Tintin au pays des Soviets","1","Fac-similé (N&B) G.F",true,"1981","Casterman","Bon état","50","Trace d'étiquette au dos - n°1772",true],
+[140,"Tintin","Tintin en Amérique","3","Fac-similé (N&B) G.F",true,"1983","Casterman","Très bon état","50","RAS : - n°1804",true],
+[141,"Tintin","Les cigares du Pharaon","4","Fac-similé (N&B) G.F",true,"1984","Casterman","Très bon état","50","Très bon état - R.A.S",true],
+[142,"Tintin","L'île noire","7","Fac-similé (N&B) G.F",true,"1987","Casterman","Très bon état","20-25","RAS - n°1227",true],
+[143,"Tintin","Le sceptre d'Ottokar","8","Fac-similé (N&B) G.F",true,"1988","Casterman","Très bon état","20-25","RAS",true],
+[144,"Tintin","Le crabe aux pinces d'or","9","Fac-similé (N&B) G.F",true,"1989","Casterman","Très bon état","20-25","RAS - n°3650",true],
+[145,"Tintin","L'oreille cassée","6","Fac-similé (N&B) P.F",false,"2012","Casterman","Très bon état","Non coté","RAS",true],
+[146,"Tintin","L'île noire","7","Fac-similé (N&B) P.F",false,"2012","Casterman","Très bon état","Non coté","RAS",true],
+[147,"Tintin","L'affaire tournesol","18","Fac-similé couleur",true,"2005","Casterman","Très bon état","Non coté","Sous blister",true],
+[148,"Tintin","L'oreille cassée","6","HS - Archives",true,"2010","Atlas","Très bon état","Non coté","RAS et figurine en étain",true],
+[149,"Valérian","La cité des eaux mouvementées","1","Classique",false,"1981","Dargaud","Bon état","Non coté","Tampon librairie + dos un peu décallé + nouvelle couverture et DARGAUD Editeur",true],
+[150,"Valérian","Les héros de l'équinoxe","8","Classique",true,"1978","Dargaud","Moyen état","25","Tampon librairie + coiffes et coins un peu abimés",true],
+[151,"Valérian","Les foudres d'hypsis","12","Classique",true,"1985","Dargaud","Très bon état","18","Tampon librairie",true],
+[152,"Yakari","Sekred Kurunig","6","Classique en breton",true,"1984","Keit Vimp Beo","Très bon état","Non coté","En langue bretonne",true]
 ];
 
 /* ================================================================
@@ -593,6 +595,17 @@ function removeFromWishlist(id){
   wishlist = wishlist.filter(w=>w.id!==id);
   saveWishlist();
 }
+
+/* ================================================================
+   DONNÉES FINANCIÈRES DES BD DE BASE — coût et vente ne sont JAMAIS
+   écrits en dur dans le code (RAW). Elles ne vivent que dans ce
+   stockage local à l'appareil, alimenté une fois via un fichier de
+   migration, puis inclus dans les sauvegardes normales comme le reste.
+   ================================================================ */
+const LS_BASE_FINANCES = "bdcollection_base_finances_v1";
+function loadBaseFinances(){ try{ return JSON.parse(localStorage.getItem(LS_BASE_FINANCES)) || {}; }catch(e){ return {}; } }
+function saveBaseFinances(){ try{ localStorage.setItem(LS_BASE_FINANCES, JSON.stringify(baseFinances)); }catch(e){} }
+let baseFinances = loadBaseFinances(); // { [num]: { cout, vente } } — uniquement pour les BD de base (num < USER_ID_BASE)
 
 function deleteParaItem(id){
   const idx = parabdItems.findIndex(p=>p.id===id);
@@ -752,13 +765,13 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.24"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.2.25"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
   if(Array.isArray(r)){
-    const [num, serie, titre, tome, format, eo, annee, editeur, etat, cout, vente, cote, commentaire, owned] = r;
-    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt:null, displayNum:null };
+    const [num, serie, titre, tome, format, eo, annee, editeur, etat, cote, commentaire, owned] = r;
+    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout:null, vente:null, cote, commentaire, owned, modifiedAt:null, displayNum:null };
   }
   return {
     num: r.num,
@@ -809,8 +822,12 @@ function buildAlbums(rawRows, userRows){
   const order = [];
   let aid = 0;
   function processRow(row, isRaw){
-    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cout, vente, cote, commentaire, owned, modifiedAt, displayNum } = row;
+    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cote, commentaire, owned, modifiedAt, displayNum } = row;
     if(isRaw && deletedNums.has(num)) return; // BD de base supprimée ou remplacée par une version modifiée
+    // Pour une BD de base, coût/vente ne sont plus dans le code : ils viennent uniquement de baseFinances
+    // (rempli une fois via le fichier de migration), jamais du fichier public.
+    const fin = isRaw ? (baseFinances[num] || {}) : row;
+    const cout = fin.cout ?? null, vente = fin.vente ?? null;
     const key = [serie,titre,tome,format].join("|||");
     if(!map.has(key)){
       map.set(key, { aid: aid++, serie, titre, tome, format, owned:false, exemplaires: [] });
@@ -1791,7 +1808,7 @@ async function exportBackup(){
   try{
     const payload = {
       schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, photos: PHOTOS
+      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, photos: PHOTOS
     };
     const now = new Date();
     const dd = String(now.getDate()).padStart(2,"0");
@@ -1870,6 +1887,9 @@ function importBackup(file){
       const existingWishIds = new Set(wishlist.map(w=>w.id));
       incomingWishlist.forEach(w=>{ if(!existingWishIds.has(w.id)){ wishlist.push(w); existingWishIds.add(w.id); } });
       saveWishlist();
+      const incomingBaseFinances = (data.baseFinances && typeof data.baseFinances === "object") ? data.baseFinances : {};
+      Object.keys(incomingBaseFinances).forEach(k=>{ baseFinances[k] = incomingBaseFinances[k]; });
+      saveBaseFinances();
       const incomingPhotos = data.photos || {};
       const changedKeys = [];
       Object.keys(incomingPhotos).forEach(key=>{
@@ -3303,6 +3323,9 @@ function renderGuide(){
           <strong>Ce qui se passe lors d'une mise à jour de l'application</strong><br>
           Quand je modifie le code et que tu remplaces le fichier index.html sur GitHub, l'adresse de ton application (https://tonpseudo.github.io/…) ne change pas. Tes données sont rattachées à cette adresse, pas au contenu du fichier — donc à chaque nouvelle version, ton téléphone retrouve automatiquement tout ce que tu avais déjà ajouté, sans aucune manipulation. À chaque changement dans la structure des données (comme l'ajout de la Catégorie dans Para-BD), j'écris aussi du code qui "traduit" tes anciennes données vers le nouveau format.<br><br>
 
+          <strong>Coût et valeur de vente des 150 BD de base</strong><br>
+          Depuis la version 1.2.25, le coût d'achat et la valeur de vente des BD de base ne sont plus écrits dans le code de l'application (qui est publié publiquement sur GitHub) — uniquement dans le stockage local de ton téléphone, au même titre que tes propres BD ajoutées. La côte BDM/BD Gest, elle, reste dans le code (ce n'est pas une donnée personnelle). Cette information fait désormais partie intégrante de tes sauvegardes normales : rien de particulier à faire au quotidien.<br><br>
+
           <strong>Comment exporter une sauvegarde, étape par étape</strong><br>
           1. Onglet Ajouter → section "Sauvegarde locale" → bouton "Exporter la sauvegarde"<br>
           2. Le menu de partage natif de l'iPhone s'ouvre : choisis où envoyer le fichier — Mail (te l'envoyer par e-mail), Enregistrer dans Fichiers (le garder sur le téléphone ou iCloud Drive), AirDrop (vers un autre appareil), etc.<br>
@@ -3358,6 +3381,7 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.25", date:"22/07/2026", summary:"Catalogue de base mis à jour depuis le PDF le plus récent (150 → 152 BD). Le coût d'achat et la valeur de vente des BD de base ne sont plus écrits dans le code de l'application (public sur GitHub) : ils vivent uniquement dans le stockage local du téléphone, alimenté une fois via un fichier de migration à part, puis inclus dans les sauvegardes normales comme le reste. La côte BDM/BD Gest reste inchangée." },
   { version:"1.2.24", date:"22/07/2026", summary:"Le texte \"Voir les BD\" des listes déroulantes par statistique (état, éditeur, décennie) est maintenant nettement plus petit que le libellé de la statistique elle-même, au lieu de paraître presque aussi imposant." },
   { version:"1.2.23", date:"22/07/2026", summary:"Second lot de la grosse mise à jour : export des photos seules en .zip (organisées par série, avec pop-up de taille avant confirmation), réordonnancement des photos d'une fiche (flèches ‹ ›), fiche détaillée pour un article de la liste de souhait, listes déroulantes des BD sous chaque statistique (état, éditeur, décennie), accordéon exclusif dans Mon profil avec bouton « Tout déplier »." },
   { version:"1.2.22", date:"22/07/2026", summary:"Premier lot de la grosse mise à jour : correction du carré bleu qui apparaissait à la fin de la fiche assurance PDF, message clair de succès/échec après l'export d'une sauvegarde, bouton renommé en « Importer la sauvegarde », et un petit clin d'œil gaulois tout en bas de l'historique des nouveautés." },
