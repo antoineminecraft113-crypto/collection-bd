@@ -130,6 +130,26 @@
   .reminder-text{ flex:1; font-size:12px; color:#fff; line-height:1.35; }
   .reminder-btn{ flex:0 0 auto; background:#fff; color:var(--accent); border:none; border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; }
   .reminder-dismiss{ flex:0 0 auto; background:none; border:none; color:rgba(255,255,255,0.7); font-size:16px; padding:2px 4px; }
+
+  /* ---- Mode visiteur ---- */
+  body.visitor-mode .visitor-hide{ display:none !important; }
+  body.visitor-mode .photo-del, body.visitor-mode .photo-move{ display:none !important; }
+  .visitor-banner{
+    position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:8px;
+    background:#B4872A; color:#fff; padding:9px 14px; font-size:12.5px; font-weight:600;
+    padding-top:calc(9px + var(--safe-top));
+  }
+  .visitor-banner .dot{ width:7px; height:7px; border-radius:50%; background:#fff; flex:0 0 auto; animation:visitorPulse 1.6s infinite; }
+  @keyframes visitorPulse{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .visitor-banner .visitor-timer{ margin-left:auto; font-variant-numeric:tabular-nums; font-weight:700; }
+  .visitor-banner .visitor-exit{ background:rgba(255,255,255,0.25); border:none; color:#fff; border-radius:7px; padding:4px 9px; font-size:11.5px; font-weight:700; margin-left:6px; }
+  .visitor-expired-screen{
+    position:fixed; inset:0; z-index:9999; background:linear-gradient(180deg, var(--blue-top), var(--blue-bottom));
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 28px; color:#fff;
+  }
+  .visitor-expired-screen .icon{ font-size:44px; margin-bottom:18px; }
+  .visitor-expired-screen h1{ font-size:20px; margin:0 0 10px; }
+  .visitor-expired-screen p{ font-size:14px; color:rgba(255,255,255,0.85); line-height:1.6; max-width:320px; margin:0; }
   .switch-label input{ display:none; }
   .switch-track{ position:relative; width:44px; height:26px; border-radius:999px; background:rgba(255,255,255,0.3); flex:0 0 auto; transition:background 0.2s; }
   .switch-thumb{ position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
@@ -213,6 +233,7 @@
   .check-row input{ width:18px; height:18px; }
   .btn-primary{ width:100%; padding:13px; border-radius:11px; background:var(--accent); color:#fff; border:none; font-size:15px; font-weight:600; }
   .btn-secondary{ flex:1; text-align:center; padding:11px; border-radius:10px; border:1px solid var(--line); background:var(--card); font-size:13.5px; font-weight:600; color:var(--accent); cursor:pointer; }
+  .btn-visitor-share{ padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg,#D9A94A,#B4872A); font-size:14px; font-weight:700; color:#fff; cursor:pointer; }
   .form-msg{ text-align:center; font-size:13px; color:var(--accent); margin-top:10px; min-height:18px; }
 
   /* ---- Tab bar ---- */
@@ -309,6 +330,12 @@
 </head>
 <body>
 <div class="bg-fixed"></div>
+<div id="visitorBanner" class="visitor-banner" style="display:none;">
+  <span class="dot"></span>
+  <span>Mode visiteur — lecture seule</span>
+  <span class="visitor-timer" id="visitorTimer">--:--</span>
+  <button class="visitor-exit" id="visitorExitBtn">Quitter</button>
+</div>
 <div id="app">
   <header class="topbar" id="topbar">
     <h1 id="headerTitle">Collection de Bandes dessinées</h1>
@@ -325,7 +352,7 @@
     <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg>
     Collection
   </button>
-  <button data-tab="ajouter">
+  <button data-tab="ajouter" class="visitor-hide">
     <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke-linecap="round"/></svg>
     Ajouter
   </button>
@@ -344,6 +371,37 @@
 <div id="insuranceDoc"></div>
 
 <script>
+/* ================================================================
+   MODE VISITEUR — détection et isolation complète du stockage.
+   Doit être évalué EN PREMIER, avant tout chargement de données :
+   toutes les clés localStorage et la base IndexedDB utilisées ensuite
+   dépendent de IS_VISITOR pour ne jamais toucher aux données réelles
+   de l'appareil pendant une session visiteur.
+   ================================================================ */
+const LS_VISITOR_SESSION = "bdcollection_visitor_session_v1";
+function loadVisitorSessionRaw(){
+  try{
+    const raw = localStorage.getItem(LS_VISITOR_SESSION);
+    if(!raw) return null;
+    const session = JSON.parse(raw);
+    if(!session || !session.expiresAt) return null;
+    if(new Date(session.expiresAt).getTime() <= Date.now()) return "expired";
+    return session;
+  }catch(e){ return null; }
+}
+const VISITOR_SESSION_RAW = loadVisitorSessionRaw();
+const VISITOR_EXPIRED = VISITOR_SESSION_RAW === "expired";
+const IS_VISITOR = !!VISITOR_SESSION_RAW && !VISITOR_EXPIRED;
+// Toute clé de stockage "normale" passe par ici : en session visiteur, elle est automatiquement
+// redirigée vers un espace séparé ("visitor__..."), jamais mélangé aux données réelles de l'appareil.
+function LSKEY(base){ return IS_VISITOR ? "visitor__"+base : base; }
+function clearVisitorStorage(){
+  try{
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith("visitor__") || k===LS_VISITOR_SESSION) localStorage.removeItem(k); });
+  }catch(e){}
+  try{ indexedDB.deleteDatabase("bdcollection_db_visitor"); }catch(e){}
+}
+
 /* ================================================================
    CONFIGURATION — à modifier facilement
    ================================================================ */
@@ -532,16 +590,16 @@ const RAW = [
 const LS_ADDED = "bdcollection_ajouts_v1";
 function loadAdded(){
   try{
-    const raw = JSON.parse(localStorage.getItem(LS_ADDED) || "[]");
+    const raw = JSON.parse(localStorage.getItem(LSKEY(LS_ADDED)) || "[]");
     return raw.map(normalizeRow); // convertit automatiquement d'anciens formats si besoin
   }catch(e){ return []; }
 }
-function saveAdded(list){ try{ localStorage.setItem(LS_ADDED, JSON.stringify(list)); }catch(e){} }
+function saveAdded(list){ try{ localStorage.setItem(LSKEY(LS_ADDED), JSON.stringify(list)); }catch(e){} }
 let userAdded = loadAdded();       // BD ajoutées via l'onglet "Ajouter", toujours normalisées en objets nommés
 
 const LS_DELETED = "bdcollection_deleted_v1";
-function loadDeleted(){ try{ return new Set(JSON.parse(localStorage.getItem(LS_DELETED) || "[]")); }catch(e){ return new Set(); } }
-function saveDeleted(){ try{ localStorage.setItem(LS_DELETED, JSON.stringify([...deletedNums])); }catch(e){} }
+function loadDeleted(){ try{ return new Set(JSON.parse(localStorage.getItem(LSKEY(LS_DELETED)) || "[]")); }catch(e){ return new Set(); } }
+function saveDeleted(){ try{ localStorage.setItem(LSKEY(LS_DELETED), JSON.stringify([...deletedNums])); }catch(e){} }
 let deletedNums = loadDeleted();   // nums des BD de base supprimées ou remplacées par une modification
 
 
@@ -566,14 +624,14 @@ function normalizeParaItem(p){
   };
 }
 const LS_PARABD = "bdcollection_parabd_v1";
-function loadParabd(){ try{ return (JSON.parse(localStorage.getItem(LS_PARABD)) || []).map(normalizeParaItem); }catch(e){ return []; } }
-function saveParabd(){ try{ localStorage.setItem(LS_PARABD, JSON.stringify(parabdItems)); }catch(e){} }
+function loadParabd(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_PARABD))) || []).map(normalizeParaItem); }catch(e){ return []; } }
+function saveParabd(){ try{ localStorage.setItem(LSKEY(LS_PARABD), JSON.stringify(parabdItems)); }catch(e){} }
 let parabdItems = loadParabd();    // { id, serie, categorie, objet, annee, etat, editeur, cout, commentaire }
 function nextParaId(){ return Date.now(); }
 
 const LS_PARABD_TRASH = "bdcollection_parabd_trash_v1";
-function loadParabdTrash(){ try{ return (JSON.parse(localStorage.getItem(LS_PARABD_TRASH)) || []).map(normalizeParaItem); }catch(e){ return []; } }
-function saveParabdTrash(){ try{ localStorage.setItem(LS_PARABD_TRASH, JSON.stringify(parabdTrash)); }catch(e){} }
+function loadParabdTrash(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_PARABD_TRASH))) || []).map(normalizeParaItem); }catch(e){ return []; } }
+function saveParabdTrash(){ try{ localStorage.setItem(LSKEY(LS_PARABD_TRASH), JSON.stringify(parabdTrash)); }catch(e){} }
 let parabdTrash = loadParabdTrash();
 
 /* ================================================================
@@ -583,8 +641,8 @@ function normalizeWishItem(w){
   return { id: w.id, serie: w.serie || "", titre: w.titre || "", commentaire: w.commentaire ?? "", addedAt: w.addedAt ?? null };
 }
 const LS_WISHLIST = "bdcollection_wishlist_v1";
-function loadWishlist(){ try{ return (JSON.parse(localStorage.getItem(LS_WISHLIST)) || []).map(normalizeWishItem); }catch(e){ return []; } }
-function saveWishlist(){ try{ localStorage.setItem(LS_WISHLIST, JSON.stringify(wishlist)); }catch(e){} }
+function loadWishlist(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_WISHLIST))) || []).map(normalizeWishItem); }catch(e){ return []; } }
+function saveWishlist(){ try{ localStorage.setItem(LSKEY(LS_WISHLIST), JSON.stringify(wishlist)); }catch(e){} }
 let wishlist = loadWishlist();      // { id, serie, titre, commentaire, addedAt }
 function nextWishId(){ return Date.now(); } // horodatage : même logique anti-collision que Para-BD
 function addToWishlist(serie, titre, commentaire){
@@ -603,8 +661,8 @@ function removeFromWishlist(id){
    migration, puis inclus dans les sauvegardes normales comme le reste.
    ================================================================ */
 const LS_BASE_FINANCES = "bdcollection_base_finances_v1";
-function loadBaseFinances(){ try{ return JSON.parse(localStorage.getItem(LS_BASE_FINANCES)) || {}; }catch(e){ return {}; } }
-function saveBaseFinances(){ try{ localStorage.setItem(LS_BASE_FINANCES, JSON.stringify(baseFinances)); }catch(e){} }
+function loadBaseFinances(){ try{ return JSON.parse(localStorage.getItem(LSKEY(LS_BASE_FINANCES))) || {}; }catch(e){ return {}; } }
+function saveBaseFinances(){ try{ localStorage.setItem(LSKEY(LS_BASE_FINANCES), JSON.stringify(baseFinances)); }catch(e){} }
 let baseFinances = loadBaseFinances(); // { [num]: { cout, vente } } — uniquement pour les BD de base (num < USER_ID_BASE)
 
 function deleteParaItem(id){
@@ -647,16 +705,16 @@ function normalizeVitrineEntry(v){
 }
 function loadVitrine(){
   try{
-    const stored = JSON.parse(localStorage.getItem(LS_VITRINE));
+    const stored = JSON.parse(localStorage.getItem(LSKEY(LS_VITRINE)));
     return Array.isArray(stored) ? stored.map(normalizeVitrineEntry) : DEFAULT_VITRINE.map(normalizeVitrineEntry);
   }catch(e){ return DEFAULT_VITRINE.map(normalizeVitrineEntry); }
 }
-function saveVitrine(){ try{ localStorage.setItem(LS_VITRINE, JSON.stringify(VITRINE)); }catch(e){} }
+function saveVitrine(){ try{ localStorage.setItem(LSKEY(LS_VITRINE), JSON.stringify(VITRINE)); }catch(e){} }
 let VITRINE = loadVitrine();        // titres mis en avant sur l'étagère, modifiable via le bouton "Gérer"
 let PHOTOS = {};                   // { "ex<num>": ["dataURL compressé", ...] } — miroir en mémoire d'IndexedDB
 
 // --- IndexedDB : une seule table clé/valeur (clé = "ex<num>", valeur = tableau de dataURL) ---
-const IDB_NAME = "bdcollection_db";
+const IDB_NAME = IS_VISITOR ? "bdcollection_db_visitor" : "bdcollection_db";
 const IDB_STORE = "photos";
 let idbPromise = null;
 function openIDB(){
@@ -765,7 +823,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.25"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.2.26"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -858,20 +916,21 @@ refreshDerived();
 
 // --- Suppression / modification d'un exemplaire ---
 const LS_BD_TRASH = "bdcollection_bd_trash_v1";
-function loadBdTrash(){ try{ return JSON.parse(localStorage.getItem(LS_BD_TRASH) || "[]"); }catch(e){ return []; } }
-function saveBdTrash(){ try{ localStorage.setItem(LS_BD_TRASH, JSON.stringify(bdTrash)); }catch(e){} }
+function loadBdTrash(){ try{ return JSON.parse(localStorage.getItem(LSKEY(LS_BD_TRASH)) || "[]"); }catch(e){ return []; } }
+function saveBdTrash(){ try{ localStorage.setItem(LSKEY(LS_BD_TRASH), JSON.stringify(bdTrash)); }catch(e){} }
 let bdTrash = loadBdTrash(); // snapshot complet de chaque exemplaire supprimé (base ou ajouté), avec deletedAt
 migrateDisplayNums();
 
 // --- Rappel de sauvegarde (in-app uniquement : une page statique ne peut pas envoyer de vraie notification) ---
 const LS_LAST_EXPORT = "bdcollection_last_export_v1";
 const LS_REMINDER_DISMISS = "bdcollection_reminder_dismiss_v1";
-function getLastExportAt(){ try{ return localStorage.getItem(LS_LAST_EXPORT); }catch(e){ return null; } }
-function setLastExportAt(){ try{ localStorage.setItem(LS_LAST_EXPORT, new Date().toISOString()); }catch(e){} }
-function getReminderDismissedAt(){ try{ return localStorage.getItem(LS_REMINDER_DISMISS); }catch(e){ return null; } }
-function dismissReminder(){ try{ localStorage.setItem(LS_REMINDER_DISMISS, new Date().toISOString()); }catch(e){} }
+function getLastExportAt(){ try{ return localStorage.getItem(LSKEY(LS_LAST_EXPORT)); }catch(e){ return null; } }
+function setLastExportAt(){ try{ localStorage.setItem(LSKEY(LS_LAST_EXPORT), new Date().toISOString()); }catch(e){} }
+function getReminderDismissedAt(){ try{ return localStorage.getItem(LSKEY(LS_REMINDER_DISMISS)); }catch(e){ return null; } }
+function dismissReminder(){ try{ localStorage.setItem(LSKEY(LS_REMINDER_DISMISS), new Date().toISOString()); }catch(e){} }
 function daysSince(iso){ if(!iso) return Infinity; return (Date.now() - new Date(iso).getTime()) / 86400000; }
 function shouldShowBackupReminder(){
+  if(IS_VISITOR) return false;
   const hasContent = userAdded.length>0 || parabdItems.length>0 || Object.keys(PHOTOS).length>0;
   if(!hasContent) return false;
   return daysSince(getLastExportAt()) >= 30 && daysSince(getReminderDismissedAt()) >= 1;
@@ -1326,7 +1385,7 @@ function renderShelf(){
     ${shelfBody}
     <div class="row-between" style="margin:26px 2px 12px;">
       <p class="section-title" style="margin:0;">En vitrine</p>
-      <button class="link-btn" id="manageVitrineBtn">Gérer</button>
+      <button class="link-btn visitor-hide" id="manageVitrineBtn">Gérer</button>
     </div>
     ${vitrine || "<p style=\"font-size:13px; color:rgba(255,255,255,0.72);\">Aucun album en vitrine pour l'instant — appuie sur \"Gérer\" pour en choisir.</p>"}
   `;
@@ -1507,6 +1566,12 @@ function renderAjouter(){
     <p style="font-size:11.5px; color:rgba(255,255,255,0.65); margin:8px 2px 0; line-height:1.4;">
       Génère un inventaire complet avec valeurs estimées, à imprimer ou enregistrer en PDF — utile pour une déclaration d'assurance.
     </p>
+
+    <p class="section-title">Partage visiteur</p>
+    <p style="font-size:12.5px; color:rgba(255,255,255,0.75); margin:0 2px 12px; line-height:1.5;">
+      Pour montrer ta collection à quelqu'un, en lecture seule et pour un temps limité — jamais tes coûts, tes ventes, ni tes données personnelles.
+    </p>
+    <button type="button" class="btn-visitor-share" id="visitorShareBtn" style="width:100%;">🔗 Partager avec un visiteur</button>
   `;
 }
 
@@ -1754,6 +1819,148 @@ function formatBytes(n){
   if(n < 1024*1024) return Math.round(n/1024) + " Ko";
   return (n/(1024*1024)).toFixed(1) + " Mo";
 }
+/* ================================================================
+   PARTAGE VISITEUR — fiche de réglages, construction d'un fichier
+   restreint (jamais coût/vente/liste de souhait/corbeille), envoi
+   via le partage natif avec le lien de l'appli en texte du message.
+   ================================================================ */
+function estimateVisitorPhotosSize(){
+  let total = 0;
+  Object.values(PHOTOS).forEach(arr=>{
+    arr.forEach(src=>{
+      const comma = src.indexOf(",");
+      total += Math.floor((src.length - comma - 1) * 0.75);
+    });
+  });
+  return total;
+}
+function renderVisitorShareSheet(){
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">Partage</div>
+    <div class="sheet-title">Partager avec un visiteur</div>
+    <p style="font-size:13px; color:var(--ink-soft); line-height:1.6; margin:10px 2px 20px;">
+      La personne pourra consulter ta collection (BD, Para-BD, statistiques) en lecture seule, pour la durée choisie — jamais tes coûts, tes ventes, ta liste de souhait ni ta corbeille.
+    </p>
+    <div class="field">
+      <label>Durée d'accès</label>
+      <select id="visitorDuration">
+        <option value="10">10 minutes</option>
+        <option value="20">20 minutes</option>
+        <option value="30" selected>30 minutes</option>
+        <option value="40">40 minutes</option>
+        <option value="50">50 minutes</option>
+        <option value="60">1 heure</option>
+      </select>
+    </div>
+    <label style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--ink); margin:0 2px 14px; cursor:pointer;">
+      <input type="checkbox" id="visitorIncludeComments" checked style="width:18px; height:18px;"> Inclure les commentaires
+    </label>
+    <label style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--ink); margin:0 2px 6px; cursor:pointer;">
+      <input type="checkbox" id="visitorIncludePhotos" checked style="width:18px; height:18px;"> Inclure les photos
+    </label>
+    <p id="visitorSizeHint" style="font-size:11.5px; color:var(--ink-soft); margin:0 2px 18px;"></p>
+    <button class="btn-primary" id="visitorGenerateBtn" style="width:100%;">Générer et partager</button>
+    <div class="form-msg" id="visitorShareMsg"></div>
+  `;
+}
+function openVisitorShareSheet(){
+  document.getElementById("sheet").innerHTML = renderVisitorShareSheet();
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+  bindVisitorShareSheet();
+}
+function bindVisitorShareSheet(){
+  const updateHint = ()=>{
+    const includePhotos = document.getElementById("visitorIncludePhotos").checked;
+    const hint = document.getElementById("visitorSizeHint");
+    if(!hint) return;
+    hint.textContent = includePhotos
+      ? `Avec les photos, le fichier fera environ ${formatBytes(estimateVisitorPhotosSize())}.`
+      : "Sans les photos, le fichier restera très léger.";
+  };
+  const photosCheckbox = document.getElementById("visitorIncludePhotos");
+  if(photosCheckbox) photosCheckbox.addEventListener("change", updateHint);
+  updateHint();
+  const genBtn = document.getElementById("visitorGenerateBtn");
+  if(genBtn) genBtn.addEventListener("click", generateAndShareVisitorFile);
+}
+function visitorRowFrom(row, includeComments){
+  return {
+    num: row.num, displayNum: row.displayNum ?? null, serie: row.serie, titre: row.titre, tome: row.tome, format: row.format,
+    eo: row.eo, annee: row.annee, editeur: row.editeur, etat: row.etat, cote: row.cote,
+    commentaire: includeComments ? row.commentaire : "",
+    owned: row.owned, modifiedAt: row.modifiedAt
+    // cout et vente jamais inclus, quels que soient les réglages choisis
+  };
+}
+function visitorParaFrom(p, includeComments){
+  return {
+    id: p.id, serie: p.serie, categorie: p.categorie, objet: p.objet, collection: p.collection,
+    annee: p.annee, etat: p.etat, editeur: p.editeur,
+    commentaire: includeComments ? (p.commentaire||"") : ""
+    // cout jamais inclus, quels que soient les réglages choisis
+  };
+}
+async function generateAndShareVisitorFile(){
+  const msg = document.getElementById("visitorShareMsg");
+  try{
+    const minutes = Number(document.getElementById("visitorDuration").value);
+    const includeComments = document.getElementById("visitorIncludeComments").checked;
+    const includePhotos = document.getElementById("visitorIncludePhotos").checked;
+    const expiresAt = new Date(Date.now() + minutes*60000).toISOString();
+
+    const payload = {
+      schemaVersion: SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      visitorSession: { expiresAt },
+      added: userAdded.map(r=>visitorRowFrom(r, includeComments)),
+      deleted: [...deletedNums],
+      parabd: parabdItems.map(p=>visitorParaFrom(p, includeComments)),
+      photos: includePhotos ? PHOTOS : {}
+      // wishlist, bdTrash, parabdTrash, baseFinances : jamais inclus dans un partage visiteur
+    };
+
+    const jsonText = JSON.stringify(payload);
+    const compressed = await compressText(jsonText);
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2,"0");
+    const mm = String(now.getMonth()+1).padStart(2,"0");
+    const yy = String(now.getFullYear()).slice(2);
+    const filename = compressed ? `visite_collection_bd_${dd}-${mm}-${yy}.json.gz` : `visite_collection_bd_${dd}-${mm}-${yy}.json`;
+    const blob = compressed ? new Blob([compressed], { type:"application/gzip" }) : new Blob([jsonText], { type:"application/json" });
+
+    const durationLabel = minutes===60 ? "1 heure" : `${minutes} minutes`;
+    const expiresLabel = new Date(expiresAt).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" });
+    const shareText = `Salut !\n\nJe te partage ma collection de BD (en lecture seule, le temps d'y jeter un œil) :\n\n1. Ouvre ce lien : ${location.href}\n2. Une fois l'appli ouverte, va dans l'onglet Ajouter (en bas), puis "Importer la sauvegarde"\n3. Sélectionne le fichier joint à ce message (${filename})\n4. Tu arrives automatiquement sur ma collection, en lecture seule — tu peux consulter, chercher, trier les BD et Para-BD, mais rien modifier ni ajouter\n\n⏳ Attention : cet accès expire ${durationLabel} après l'envoi, à ${expiresLabel}. Passé ce délai, l'appli redevient vide pour toi (tout sera automatiquement effacé de ton téléphone) — aucune conséquence pour moi si ça arrive, dis-le-moi juste et je t'en renvoie un.\n\nBonne visite !`;
+
+    try{
+      const file = new File([blob], filename, { type: blob.type });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], title:"Ma collection de BD", text: shareText });
+        if(msg) msg.textContent = "Partagé avec succès.";
+        return;
+      }
+    }catch(shareErr){
+      if(shareErr && shareErr.name === "AbortError"){
+        if(msg) msg.textContent = "";
+        return;
+      }
+      throw shareErr;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    if(msg) msg.textContent = "Fichier généré et téléchargé. Envoie-le manuellement avec ce message :\n\n" + shareText;
+  }catch(err){
+    if(msg) msg.textContent = "Échec de la génération du partage — réessaie.";
+  }
+}
+
 async function exportPhotosOnly(){
   const msg = document.getElementById("backupMsg");
   const entries = collectPhotoExportEntries();
@@ -1864,6 +2071,36 @@ function importBackup(file){
       const buf = e.target.result;
       const text = looksGzip(buf) ? await decompressToText(buf) : new TextDecoder("utf-8").decode(buf);
       const data = JSON.parse(text);
+
+      if(data.visitorSession && data.visitorSession.expiresAt){
+        // Fichier de partage visiteur : jamais fusionné avec les données réelles de cet appareil.
+        // On écrit directement dans l'espace isolé "visitor__...", puis on recharge la page pour
+        // repartir sur un état propre en mode visiteur (même chemin de démarrage que testé).
+        const prefix = "visitor__";
+        localStorage.setItem(prefix+LS_ADDED, JSON.stringify((Array.isArray(data.added) ? data.added : []).map(normalizeRow)));
+        localStorage.setItem(prefix+LS_DELETED, JSON.stringify(Array.isArray(data.deleted) ? data.deleted : []));
+        localStorage.setItem(prefix+LS_PARABD, JSON.stringify((Array.isArray(data.parabd) ? data.parabd : []).map(normalizeParaItem)));
+        const visitorPhotos = data.photos || {};
+        const openReq = indexedDB.open("bdcollection_db_visitor", 1);
+        openReq.onupgradeneeded = ()=>{ openReq.result.createObjectStore("photos"); };
+        const finishActivation = ()=>{
+          localStorage.setItem(LS_VISITOR_SESSION, JSON.stringify({ expiresAt: data.visitorSession.expiresAt }));
+          location.reload();
+        };
+        openReq.onsuccess = ()=>{
+          try{
+            const db = openReq.result;
+            const tx = db.transaction("photos", "readwrite");
+            const store = tx.objectStore("photos");
+            Object.keys(visitorPhotos).forEach(key=>store.put(visitorPhotos[key], key));
+            tx.oncomplete = finishActivation;
+            tx.onerror = finishActivation;
+          }catch(e){ finishActivation(); }
+        };
+        openReq.onerror = finishActivation;
+        return;
+      }
+
       // normalizeRow() absorbe aussi bien une sauvegarde faite avec une version plus ancienne (ou future) du code
       const incomingAdded = (Array.isArray(data.added) ? data.added : []).map(normalizeRow);
       const existingNums = new Set(userAdded.map(r=>r.num));
@@ -2174,8 +2411,8 @@ function renderStats(){
 
   return `
     <div class="mini-stats">
-      <div class="card mini-stat"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût total</div></div>
-      <div class="card mini-stat"><div class="val mono">${eur(totalVente)}</div><div class="lab">Vente estim.</div></div>
+      <div class="card mini-stat visitor-hide"><div class="val mono">${eur(totalCout)}</div><div class="lab">Coût total</div></div>
+      <div class="card mini-stat visitor-hide"><div class="val mono">${eur(totalVente)}</div><div class="lab">Vente estim.</div></div>
       <div class="card mini-stat"><div class="val mono">${eur(totalCote)}</div><div class="lab">BDM / BD Gest</div></div>
     </div>
     <div style="text-align:right; margin-bottom:8px;">
@@ -2204,7 +2441,7 @@ function renderStats(){
       </div>
     </details>
 
-    <details class="card profile-card">
+    <details class="card profile-card visitor-hide">
       <summary>Liste de souhait<span class="acc-sub">${wishlist.length}</span></summary>
       <div class="acc-body">${renderWishlistSection()}</div>
     </details>
@@ -2217,15 +2454,15 @@ function renderStats(){
 
         <p class="section-title">Chiffres clés</p>
         <div class="mini-stats-2">
-          <div class="card mini-stat" style="background:var(--well);"><div class="val mono">${eur(valeurMoyenne)}</div><div class="lab">Valeur moy. / exemplaire</div></div>
+          <div class="card mini-stat visitor-hide" style="background:var(--well);"><div class="val mono">${eur(valeurMoyenne)}</div><div class="lab">Valeur moy. / exemplaire</div></div>
           <div class="card mini-stat" style="background:var(--well);"><div class="val mono">${eoCount} (${eoPct}%)</div><div class="lab">Éditions originales</div></div>
         </div>
 
         <p class="section-title">Répartition par série (${SERIES.length})</p>
         ${bars}
 
-        <p class="section-title">Valeur par série (vente)</p>
-        ${serieValueBars}
+        <p class="section-title visitor-hide">Valeur par série (vente)</p>
+        <div class="visitor-hide">${serieValueBars}</div>
 
         <p class="section-title">Répartition par éditeur</p>
         ${editeurBars}
@@ -2388,7 +2625,7 @@ function renderWishDetail(id){
     </div>
     <p class="sheet-note">${w.commentaire || "Aucune note."}</p>
     ${w.addedAt ? `<p class="photo-hint">Ajoutée à la liste de souhait le ${formatDateTime(w.addedAt)}.</p>` : ""}
-    <div class="sheet-actions">
+    <div class="sheet-actions visitor-hide">
       <button class="btn-delete" id="wishDetailRemove" style="width:100%;">Retirer de la liste de souhait</button>
     </div>
   `;
@@ -2581,7 +2818,7 @@ function renderParabd(){
     : parabdState.level==="collectionItems" ? renderParaCollectionItemsList()
     : renderParaItemsList();
   return `
-    <button class="btn-primary" id="paraAddBtn" style="margin-bottom:16px;">+ Ajouter un objet</button>
+    <button class="btn-primary visitor-hide" id="paraAddBtn" style="margin-bottom:16px;">+ Ajouter un objet</button>
     <div class="search-wrap">
       <input class="search-input" id="parabdSearch" placeholder="Chercher un objet, une catégorie…" value="${parabdQuery}">
       ${parabdQuery ? `<button class="clear-search" id="clearParabdSearch">×</button>` : ""}
@@ -2646,7 +2883,7 @@ function renderParaAddForm(){
       </div>
       <p class="photos-title">Photos</p>
       <div class="photo-strip" id="paraDraftPhotoStrip">${renderParaDraftPhotoThumbs()}</div>
-      <label class="add-photo-btn">
+      <label class="add-photo-btn visitor-hide">
         + Ajouter une photo
         <input type="file" accept="image/*" multiple id="paraDraftPhotoInput" style="display:none;">
       </label>
@@ -2788,12 +3025,12 @@ function renderParaDetail(){
     ${p.modifiedAt ? `<p class="photo-hint">Dernière modification : ${formatDateTime(p.modifiedAt)}</p>` : ""}
     <p class="photos-title">Photos</p>
     <div class="photo-strip">${photoThumbs}</div>
-    <label class="add-photo-btn">
+    <label class="add-photo-btn visitor-hide">
       + Ajouter une photo
       <input type="file" accept="image/*" multiple id="paraPhotoInput" style="display:none;">
     </label>
     <p class="photo-hint">Les photos sont enregistrées uniquement sur cet appareil, en version compressée.</p>
-    <div class="sheet-actions">
+    <div class="sheet-actions visitor-hide">
       <button class="btn-edit" id="editParaBtn">Modifier</button>
       <button class="btn-delete" id="deleteParaBtn">Supprimer</button>
     </div>
@@ -3037,12 +3274,12 @@ function renderSheet(){
     ${ex.modifiedAt ? `<p class="photo-hint">Dernière modification : ${formatDateTime(ex.modifiedAt)}</p>` : ""}
     <p class="photos-title">Photos</p>
     <div class="photo-strip">${photoThumbs}</div>
-    <label class="add-photo-btn">
+    <label class="add-photo-btn visitor-hide">
       + Ajouter une photo
       <input type="file" accept="image/*" multiple id="photoInput" style="display:none;">
     </label>
     <p class="photo-hint">Les photos sont enregistrées uniquement sur cet appareil (dans le stockage local de Safari), en version compressée. Si tu changes de téléphone ou vides les données du site, elles seront perdues — pense à exporter une sauvegarde de temps en temps (onglet Ajouter).</p>
-    <div class="sheet-actions">
+    <div class="sheet-actions visitor-hide">
       <button class="btn-edit" id="editExBtn">Modifier</button>
       <button class="btn-delete" id="deleteExBtn">Supprimer</button>
     </div>
@@ -3316,6 +3553,14 @@ function renderGuide(){
       a: `Coût total, valeur de vente estimée et côte BDM/BD Gest de ta collection, toujours visibles en haut. En dessous, chaque catégorie se déplie séparément (comme ce guide) pour ne pas surcharger l'écran : Progression photo (avec les listes déroulantes des BD et objets Para-BD qui n'ont pas encore de photo), Liste de souhait, Statistiques (répartition par état, chiffres clés, répartition par série, valeur par série, répartition par éditeur, répartition par décennie de parution, espace de stockage — tout regroupé au même endroit, avec sous chaque répartition une petite liste déroulante des BD concernées), Para-BD par catégorie, Tomes manquants détectés, et la Corbeille. Ouvrir une catégorie referme automatiquement celle qui était ouverte ; le bouton "Tout déplier" en haut permet de toutes les voir en même temps (et refermer une seule catégorie ensuite ne touche pas aux autres). Pour Astérix, Barbe-Rouge, Buddy Longway, Largo Winch, Tintin et Valérian, le nombre réel de tomes existants m'a été confirmé : la détection des tomes manquants couvre donc la série entière (pas seulement les trous entre ce que tu possèdes déjà). Pour les autres séries, seuls les trous internes sont vérifiés. La Corbeille conserve tout ce que tu supprimes (BD comme Para-BD) : "Restaurer" le remet en place, "Vider" l'efface définitivement et sans retour possible. La Liste de souhait a sa propre barre de recherche (insensible aux accents et majuscules) ; tu y ajoutes des titres depuis l'onglet Ajouter, tu retrouves ses caractéristiques en tapant sur un article (tout y est "Non renseigné" à part le titre, la série et un éventuel commentaire, puisque tu ne l'as pas encore), et tu le retires une fois acheté.`
     },
     {
+      q: "Partager ta collection avec un visiteur",
+      a: `Onglet Ajouter → section "Partage visiteur" → bouton doré "Partager avec un visiteur". Choisis la durée d'accès (10 minutes à 1 heure, par tranches de 10 minutes) et si tu veux inclure les commentaires et les photos, puis "Générer et partager" : le menu de partage natif s'ouvre avec le lien de l'appli et le fichier joint, prêts à envoyer par Mail, Messages, AirDrop, etc.<br><br>
+          <strong>Ce que voit la personne</strong> : Étagère, Collection, Para-BD et les statistiques non financières de Mon profil, uniquement en consultation. L'onglet Ajouter, les boutons Modifier/Supprimer, la gestion des photos et tout import/export sont totalement invisibles pour elle — pas juste désactivés.<br><br>
+          <strong>Ce qui n'est jamais partagé, quels que soient les réglages choisis</strong> : ton coût d'achat, ta valeur de vente (BD comme Para-BD), ta liste de souhait, et ta corbeille. Ces informations ne se trouvent même pas dans le fichier envoyé — il n'y a donc rien à en extraire, y compris en l'ouvrant avec autre chose que l'application (un éditeur de texte, une IA, etc.).<br><br>
+          <strong>Fin de l'accès</strong> : l'heure limite est fixée au moment où tu génères le partage (pas au moment où la personne l'ouvre) — réimporter le même fichier ne prolonge donc rien. Une fois ce délai passé, un écran de fin de session s'affiche chez elle et tout est automatiquement effacé de son téléphone ; ta propre collection n'est jamais concernée, où que tu sois. Elle peut aussi quitter à tout moment avec le bouton "Quitter" du bandeau doré affiché en haut de son écran pendant toute la durée de l'accès.<br><br>
+          <strong>Limite à connaître</strong> : ces protections empêchent un usage normal et honnête (montrer ta collection sans risquer qu'elle soit modifiée), mais ne sont pas un coffre-fort — une personne déterminée avec les outils techniques appropriés pourrait les contourner sur son propre appareil. C'est pour cette raison que le coût et la vente ne sont jamais inclus dans le fichier, plutôt que simplement masqués à l'affichage.`
+    },
+    {
       q: "Technicités de l'application",
       a: `<strong>Où sont stockées tes données</strong><br>
           Tout ce que tu ajoutes (BD, objets Para-BD, photos, suppressions) est stocké directement sur ton iPhone, dans l'espace réservé à Safari pour cette application — jamais sur un serveur, jamais dans un cloud. Le texte (fiches) et les photos (plus volumineuses) utilisent deux espaces de stockage distincts, les photos ayant beaucoup plus de place disponible.<br><br>
@@ -3381,6 +3626,7 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.26", date:"22/07/2026", summary:"Nouveau : mode visiteur. Depuis l'onglet Ajouter, un bouton doré « Partager avec un visiteur » génère un accès en lecture seule, limité dans le temps (10 min à 1h), à envoyer par le partage natif. Le visiteur consulte la collection et les statistiques non financières, sans jamais voir coût/vente ni pouvoir rien modifier — l'onglet Ajouter lui est totalement invisible. L'accès s'auto-efface à l'expiration, dans un espace de stockage entièrement séparé des données réelles (jamais mélangé, jamais à risque)." },
   { version:"1.2.25", date:"22/07/2026", summary:"Catalogue de base mis à jour depuis le PDF le plus récent (150 → 152 BD). Le coût d'achat et la valeur de vente des BD de base ne sont plus écrits dans le code de l'application (public sur GitHub) : ils vivent uniquement dans le stockage local du téléphone, alimenté une fois via un fichier de migration à part, puis inclus dans les sauvegardes normales comme le reste. La côte BDM/BD Gest reste inchangée." },
   { version:"1.2.24", date:"22/07/2026", summary:"Le texte \"Voir les BD\" des listes déroulantes par statistique (état, éditeur, décennie) est maintenant nettement plus petit que le libellé de la statistique elle-même, au lieu de paraître presque aussi imposant." },
   { version:"1.2.23", date:"22/07/2026", summary:"Second lot de la grosse mise à jour : export des photos seules en .zip (organisées par série, avec pop-up de taille avant confirmation), réordonnancement des photos d'une fiche (flèches ‹ ›), fiche détaillée pour un article de la liste de souhait, listes déroulantes des BD sous chaque statistique (état, éditeur, décennie), accordéon exclusif dans Mon profil avec bouton « Tout déplier »." },
@@ -3545,6 +3791,8 @@ function render(){
   if(exportBtn) exportBtn.addEventListener("click", exportBackup);
   const exportPhotosBtn = document.getElementById("exportPhotosBtn");
   if(exportPhotosBtn) exportPhotosBtn.addEventListener("click", exportPhotosOnly);
+  const visitorShareBtn = document.getElementById("visitorShareBtn");
+  if(visitorShareBtn) visitorShareBtn.addEventListener("click", openVisitorShareSheet);
   const importInput = document.getElementById("importInput");
   if(importInput) importInput.addEventListener("change", e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); });
   const insuranceBtn = document.getElementById("insuranceBtn");
@@ -3672,6 +3920,7 @@ function renderPartialCollection(){
 
 document.querySelectorAll("nav.tabbar button").forEach(b=>{
   b.addEventListener("click", ()=>{
+    if(IS_VISITOR && b.dataset.tab==="ajouter") return;
     state.tab = b.dataset.tab;
     if(state.tab==="shelf"){ state.shelfCovers = false; }
     if(state.tab==="parabd"){ parabdState = { level:"series", serie:null, categorie:null, collection:null, annee:null, sort:"add" }; parabdQuery=""; }
@@ -3683,17 +3932,63 @@ document.querySelectorAll("nav.tabbar button").forEach(b=>{
 document.getElementById("backdrop").addEventListener("click", closeDetail);
 document.addEventListener("click", e=>{ if(e.target && e.target.id==="closeSheet") closeDetail(); });
 
-render();
-idbLoadAllPhotos().then(p=>{
-  // Fusion (et non écrasement) : si un import de sauvegarde a déjà ajouté des photos en mémoire
-  // avant la fin de ce chargement initial, on ne veut surtout pas les perdre.
-  Object.keys(p).forEach(key=>{
-    if(!PHOTOS[key]) PHOTOS[key] = p[key];
-    else PHOTOS[key] = [...new Set([...p[key], ...PHOTOS[key]])];
-  });
+function renderVisitorExpiredScreen(){
+  return `
+    <div class="visitor-expired-screen">
+      <div class="icon">⏳</div>
+      <h1>Session expirée</h1>
+      <p>Cette consultation en lecture seule est terminée. Les données affichées ont été effacées de cet appareil — elles n'ont jamais quitté celui de la personne qui les a partagées. Demande un nouveau lien si besoin.</p>
+    </div>
+  `;
+}
+function expireVisitorSessionNow(){
+  if(visitorTimerInterval) clearInterval(visitorTimerInterval);
+  clearVisitorStorage();
+  document.body.innerHTML = renderVisitorExpiredScreen();
+}
+let visitorTimerInterval = null;
+function updateVisitorTimer(){
+  const remaining = new Date(VISITOR_SESSION_RAW.expiresAt).getTime() - Date.now();
+  if(remaining <= 0){ expireVisitorSessionNow(); return; }
+  const mm = Math.floor(remaining/60000);
+  const ss = Math.floor((remaining%60000)/1000);
+  const el = document.getElementById("visitorTimer");
+  if(el) el.textContent = `${mm}:${String(ss).padStart(2,"0")}`;
+}
+
+if(VISITOR_EXPIRED){
+  clearVisitorStorage();
+  document.body.innerHTML = renderVisitorExpiredScreen();
+} else {
+  if(IS_VISITOR){
+    document.body.classList.add("visitor-mode");
+    if(state.tab==="ajouter") state.tab = "shelf"; // défensif : jamais sur l'onglet Ajouter en session visiteur
+    const banner = document.getElementById("visitorBanner");
+    if(banner) banner.style.display = "flex";
+    updateVisitorTimer();
+    visitorTimerInterval = setInterval(updateVisitorTimer, 1000);
+    const exitBtn = document.getElementById("visitorExitBtn");
+    if(exitBtn) exitBtn.addEventListener("click", ()=>{
+      showConfirm("Quitter le mode visiteur ? Les données affichées seront effacées de cet appareil.", "Quitter", ()=>{
+        if(visitorTimerInterval) clearInterval(visitorTimerInterval);
+        clearVisitorStorage();
+        location.reload();
+      });
+    });
+  }
+
   render();
-  if(document.getElementById("sheet").classList.contains("open")) document.getElementById("sheet").innerHTML = renderSheet();
-});
+  idbLoadAllPhotos().then(p=>{
+    // Fusion (et non écrasement) : si un import de sauvegarde a déjà ajouté des photos en mémoire
+    // avant la fin de ce chargement initial, on ne veut surtout pas les perdre.
+    Object.keys(p).forEach(key=>{
+      if(!PHOTOS[key]) PHOTOS[key] = p[key];
+      else PHOTOS[key] = [...new Set([...p[key], ...PHOTOS[key]])];
+    });
+    render();
+    if(document.getElementById("sheet").classList.contains("open")) document.getElementById("sheet").innerHTML = renderSheet();
+  });
+}
 </script>
 </body>
 </html>
