@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0046)file:///C:/Users/scunk/Downloads/index_10.html -->
+<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>Ma Collection BD</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -338,31 +338,75 @@
   <button class="visitor-exit" id="visitorExitBtn">Quitter</button>
 </div>
 <div id="app">
-  <header class="topbar" id="topbar">
+  <header class="topbar centered" id="topbar">
     <h1 id="headerTitle">Collection de Bandes dessinées</h1>
-    <div class="sub" id="headerSub"></div>
+    <div class="sub" id="headerSub">149 albums · 26 séries</div>
   </header>
-  <main id="main"></main>
+  <main id="main">
+    
+    <div class="reminder-banner" id="backupReminder">
+      <span class="reminder-icon">⏱</span>
+      <span class="reminder-text">Tu n'as encore jamais exporté de sauvegarde de tes ajouts et photos.</span>
+      <button class="reminder-btn" id="reminderExportBtn">Exporter</button>
+      <button class="reminder-dismiss" id="reminderDismissBtn">×</button>
+    </div>
+  
+    <p class="section-title">Ton étagère — 149 albums, 26 séries</p>
+    <label class="switch-label">
+      <input type="checkbox" id="coverToggle">
+      <span class="switch-track"><span class="switch-thumb"></span></span>
+      Afficher par couverture
+    </label>
+    
+      <div class="card shelf-wrap">
+        <div class="shelf"><div class="spine" style="width:30px" data-serie="Amourante (L&#39;)" title="Amourante (L&#39;)"><span class="label">Amourante (L')</span></div><div class="spine" style="width:72px" data-serie="Astérix" title="Astérix"><span class="label">Astérix</span></div><div class="spine" style="width:38px" data-serie="Barbe-Rouge" title="Barbe-Rouge"><span class="label">Barbe-Rouge</span></div><div class="spine" style="width:30px" data-serie="Blacksad" title="Blacksad"><span class="label">Blacksad</span></div><div class="spine" style="width:36px" data-serie="Blueberry" title="Blueberry"><span class="label">Blueberry</span></div><div class="spine" style="width:41px" data-serie="Buddy Longway" title="Buddy Longway"><span class="label">Buddy Longway</span></div><div class="spine" style="width:30px" data-serie="Chateau des Animaux" title="Chateau des Animaux"><span class="label">Chateau des Animaux</span></div><div class="spine" style="width:30px" data-serie="Comanche" title="Comanche"><span class="label">Comanche</span></div><div class="spine" style="width:30px" data-serie="De Cape et de Crocs" title="De Cape et de Crocs"><span class="label">De Cape et de Crocs</span></div><div class="spine" style="width:30px" data-serie="I.R.$" title="I.R.$"><span class="label">I.R.$</span></div><div class="spine" style="width:30px" data-serie="Il faut flinguer Ramirez" title="Il faut flinguer Ramirez"><span class="label">Il faut flinguer Ramirez</span></div><div class="spine" style="width:30px" data-serie="Indes Fourbes (Les)" title="Indes Fourbes (Les)"><span class="label">Indes Fourbes (Les)</span></div><div class="spine" style="width:30px" data-serie="Jehan Pistolet" title="Jehan Pistolet"><span class="label">Jehan Pistolet</span></div><div class="spine" style="width:30px" data-serie="Jonathan Cartland" title="Jonathan Cartland"><span class="label">Jonathan Cartland</span></div><div class="spine" style="width:30px" data-serie="La Terre Verte" title="La Terre Verte"><span class="label">La Terre Verte</span></div><div class="spine" style="width:32px" data-serie="Largo Winch" title="Largo Winch"><span class="label">Largo Winch</span></div><div class="spine" style="width:30px" data-serie="Long John Silver" title="Long John Silver"><span class="label">Long John Silver</span></div><div class="spine" style="width:30px" data-serie="Lucky Luke" title="Lucky Luke"><span class="label">Lucky Luke</span></div><div class="spine" style="width:30px" data-serie="Marie l&#39;Aventure" title="Marie l&#39;Aventure"><span class="label">Marie l'Aventure</span></div><div class="spine" style="width:30px" data-serie="Marsupilami" title="Marsupilami"><span class="label">Marsupilami</span></div><div class="spine" style="width:30px" data-serie="Nouvelle France" title="Nouvelle France"><span class="label">Nouvelle France</span></div><div class="spine" style="width:30px" data-serie="Pirates" title="Pirates"><span class="label">Pirates</span></div><div class="spine" style="width:30px" data-serie="Tanguy et Laverdure" title="Tanguy et Laverdure"><span class="label">Tanguy et Laverdure</span></div><div class="spine" style="width:51px" data-serie="Tintin" title="Tintin"><span class="label">Tintin</span></div><div class="spine" style="width:30px" data-serie="Valérian" title="Valérian"><span class="label">Valérian</span></div><div class="spine" style="width:30px" data-serie="Yakari" title="Yakari"><span class="label">Yakari</span></div></div>
+        <div class="shelf-floor"></div>
+      </div>
+    
+    <div class="row-between" style="margin:26px 2px 12px;">
+      <p class="section-title" style="margin:0;">En vitrine</p>
+      <button class="link-btn visitor-hide" id="manageVitrineBtn">Gérer</button>
+    </div>
+    
+      <div class="card vitrine-card" data-detail="1" data-exidx="0">
+        <div class="vitrine-thumb"><span class="ph-icon">＋</span><span class="ph-hint">Photo à ajouter</span></div>
+        <div class="vitrine-main">
+          <div class="vitrine-title">Astérix le gaulois</div>
+          <div class="vitrine-meta">Astérix · Tome 1 · Très bon état</div>
+        </div>
+        <div class="chev">›</div>
+      </div>
+    
+      <div class="card vitrine-card" data-detail="12" data-exidx="0">
+        <div class="vitrine-thumb"><span class="ph-icon">＋</span><span class="ph-hint">Photo à ajouter</span></div>
+        <div class="vitrine-main">
+          <div class="vitrine-title">Astérix aux jeux Olympiques</div>
+          <div class="vitrine-meta">Astérix · Tome 12 · Etat moyen · Exemplaire 1</div>
+        </div>
+        <div class="chev">›</div>
+      </div>
+    
+  </main>
 </div>
 <nav class="tabbar">
   <button data-tab="shelf" class="active">
-    <svg viewBox="0 0 24 24"><path d="M4 4v16M20 4v16M4 8h16M8 4v4M14 4v4"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M4 4v16M20 4v16M4 8h16M8 4v4M14 4v4"></path></svg>
     Étagère
   </button>
   <button data-tab="collection">
-    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg>
+    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M20 20l-5-5"></path></svg>
     Collection
   </button>
   <button data-tab="ajouter" class="visitor-hide">
-    <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke-linecap="round"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke-linecap="round"></path></svg>
     Ajouter
   </button>
   <button data-tab="parabd">
-    <svg viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4-9-4z"></path><path d="M3 8v8l9 4 9-4V8"></path><path d="M12 12v8"></path></svg>
     Para-BD
   </button>
   <button data-tab="stats">
-    <svg viewBox="0 0 24 24"><path d="M5 19V10M12 19V5M19 19v-7"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M5 19V10M12 19V5M19 19v-7"></path></svg>
     Profil
   </button>
 </nav>
@@ -901,7 +945,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.28"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.2.30"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -1628,6 +1672,13 @@ function renderAjouter(){
         <label>Commentaire</label>
         <textarea id="f_commentaire" placeholder="État précis, particularités…"></textarea>
       </div>
+      <p class="photos-title">Photos</p>
+      <div class="photo-strip" id="addDraftPhotoStrip">${renderAddDraftPhotoThumbs()}</div>
+      <label class="add-photo-btn">
+        + Ajouter une photo
+        <input type="file" accept="image/*" multiple id="addDraftPhotoInput" style="display:none;">
+      </label>
+      <p class="photo-hint" style="margin-bottom:16px;">Les photos sont enregistrées uniquement sur cet appareil, en version compressée.</p>
       <button type="submit" class="btn-primary">Ajouter à la collection</button>
       <button type="button" class="btn-secondary" id="addWishBtn" style="width:100%; margin-top:10px;">Ajouter dans la liste de souhait</button>
       <div class="form-msg" id="formMsg"></div>
@@ -1903,6 +1954,11 @@ function formatBytes(n){
   if(n < 1024*1024) return Math.round(n/1024) + " Ko";
   return (n/(1024*1024)).toFixed(1) + " Mo";
 }
+function estimateAllPhotosSize(){
+  let total = 0;
+  Object.values(PHOTOS).forEach(arr=>arr.forEach(src=>{ total += src.length; })); // approximation suffisante (longueur de la chaîne base64)
+  return total;
+}
 /* ================================================================
    PARTAGE VISITEUR — fiche de réglages, construction d'un fichier
    restreint (jamais coût/vente/liste de souhait/corbeille), envoi
@@ -2095,18 +2151,37 @@ async function exportPhotosOnly(){
   );
 }
 async function exportBackup(){
+  const photosSize = estimateAllPhotosSize();
+  const LARGE_THRESHOLD = 60*1024*1024; // au-delà, on prévient avant de tenter (risque d'échec par manque de mémoire sur certains appareils)
+  if(photosSize > LARGE_THRESHOLD){
+    showChoice(
+      `Ta sauvegarde contient beaucoup de photos (environ ${formatBytes(photosSize)}). Sur certains appareils, ça peut faire échouer l'export faute de mémoire disponible. Comment veux-tu procéder ?`,
+      "Avec les photos quand même", "Sans les photos (recommandé)",
+      ()=>doExportBackup(true),
+      ()=>doExportBackup(false)
+    );
+    return;
+  }
+  doExportBackup(true);
+}
+async function doExportBackup(includePhotos){
   const msg = document.getElementById("backupMsg");
   try{
     const payload = {
       schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, sold: soldItems, photos: PHOTOS
+      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, sold: soldItems,
+      photos: includePhotos ? PHOTOS : {}
     };
     const now = new Date();
     const dd = String(now.getDate()).padStart(2,"0");
     const mm = String(now.getMonth()+1).padStart(2,"0");
     const yy = String(now.getFullYear()).slice(2);
     const jsonText = JSON.stringify(payload);
-    const compressed = await compressText(jsonText);
+    // Compresser des photos JPEG (déjà compressées) apporte très peu et double temporairement la mémoire utilisée
+    // (le texte source ET sa version compressée coexistent le temps de l'opération) : sur un gros export avec
+    // photos, on saute cette étape pour limiter le pic mémoire, quitte à avoir un fichier un peu plus lourd.
+    const skipCompression = includePhotos && jsonText.length > 30*1024*1024;
+    const compressed = skipCompression ? null : await compressText(jsonText);
     const filename = compressed
       ? `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json.gz`
       : `sauvegarde_bd_v${APP_VERSION}_${dd}-${mm}-${yy}.json`;
@@ -2121,7 +2196,7 @@ async function exportBackup(){
       if(navigator.canShare && navigator.canShare({ files:[file] })){
         await navigator.share({ files:[file], title:"Sauvegarde Collection BD" });
         setLastExportAt();
-        if(msg) msg.textContent = "Sauvegarde exportée avec succès.";
+        if(msg) msg.textContent = includePhotos ? "Sauvegarde exportée avec succès." : `Sauvegarde exportée avec succès, sans les photos. Utilise "Exporter uniquement les photos (.zip)" pour elles séparément.`;
         return;
       }
     }catch(shareErr){
@@ -2142,9 +2217,12 @@ async function exportBackup(){
     a.remove();
     URL.revokeObjectURL(url);
     setLastExportAt();
-    if(msg) msg.textContent = "Sauvegarde exportée avec succès.";
+    if(msg) msg.textContent = includePhotos ? "Sauvegarde exportée avec succès." : `Sauvegarde exportée avec succès, sans les photos. Utilise "Exporter uniquement les photos (.zip)" pour elles séparément.`;
   }catch(err){
-    if(msg) msg.textContent = "Échec de l'export : la sauvegarde n'a probablement pas été créée correctement. Réessaie.";
+    const detail = err && err.message ? ` (${err.message})` : "";
+    if(msg) msg.textContent = includePhotos
+      ? `Échec de l'export${detail} — probablement un manque de mémoire à cause du volume de photos. Réessaie en choisissant de les exclure, puis utilise "Exporter uniquement les photos (.zip)" séparément.`
+      : `Échec de l'export${detail}. Réessaie.`;
   }
 }
 function importBackup(file){
@@ -2236,6 +2314,25 @@ function importBackup(file){
   reader.readAsArrayBuffer(file);
 }
 
+let addDraftNum = null; // numéro provisoire assigné dès l'arrivée sur l'onglet Ajouter, pour pouvoir y attacher des photos avant même la sauvegarde de la BD
+function renderAddDraftPhotoThumbs(){
+  const photos = PHOTOS["ex"+addDraftNum] || [];
+  return photos.map((src,i)=>`
+    <div class="photo-thumb"><img src="${src}"><button type="button" class="photo-del" data-deladdraftphoto="${i}">×</button></div>
+  `).join("");
+}
+function bindAddDraftPhotoDelete(){
+  document.querySelectorAll("[data-deladdraftphoto]").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const key = "ex"+addDraftNum;
+      PHOTOS[key].splice(Number(el.dataset.deladdraftphoto), 1);
+      await idbSavePhotosFor(key);
+      const strip = document.getElementById("addDraftPhotoStrip");
+      if(strip) strip.innerHTML = renderAddDraftPhotoThumbs();
+      bindAddDraftPhotoDelete();
+    });
+  });
+}
 function handleAddSubmit(e){
   e.preventDefault();
   const val = id => document.getElementById(id).value.trim();
@@ -2260,7 +2357,7 @@ function finalizeAddSubmit(serie, titre, mergeInto){
   const val = id => document.getElementById(id).value.trim();
   const cout = parseFloat(val("f_cout")); const vente = parseFloat(val("f_vente"));
   const row = {
-    num: nextUserNum(),
+    num: addDraftNum, // le même numéro que celui utilisé pour les photos ajoutées pendant la saisie
     displayNum: mergeInto ? null : nextDisplayNum(),
     // En cas de fusion confirmée, on reprend exactement série/titre/tome/format de l'album existant :
     // c'est ce qui garantit la fusion en exemplaire supplémentaire (la clé de regroupement doit être identique au caractère près).
@@ -2283,9 +2380,15 @@ function finalizeAddSubmit(serie, titre, mergeInto){
   refreshDerived();
   const matchedWish = wishlist.find(w=>normalizeText(w.serie)===normalizeText(serie) && normalizeText(w.titre)===normalizeText(titre));
   if(matchedWish) removeFromWishlist(matchedWish.id);
+  const nbPhotos = (PHOTOS["ex"+addDraftNum] || []).length;
   const base = mergeInto ? `« ${titre} » ajouté comme nouvel exemplaire de ta collection.` : `« ${titre} » ajouté à ta collection.`;
-  document.getElementById("formMsg").textContent = matchedWish ? `${base} (et retiré de ta liste de souhait)` : base;
+  const photoNote = nbPhotos ? ` (${nbPhotos} photo${nbPhotos>1?"s":""} incluse${nbPhotos>1?"s":""})` : "";
+  document.getElementById("formMsg").textContent = (matchedWish ? `${base} (et retiré de ta liste de souhait)` : base) + photoNote;
   document.getElementById("addForm").reset();
+  // prépare un nouveau brouillon (et sa vignette photo vide) pour un éventuel prochain ajout
+  addDraftNum = nextUserNum();
+  const strip = document.getElementById("addDraftPhotoStrip");
+  if(strip) strip.innerHTML = renderAddDraftPhotoThumbs();
 }
 function handleAddWish(){
   const val = id => document.getElementById(id).value.trim();
@@ -2325,6 +2428,19 @@ const KNOWN_SERIES_TOMES = {
   "tintin": { min:1, max:24 },
   "valerian": { min:0, max:21 }
 };
+// Condense une liste de nombres triés en plages lisibles, ex. [2,3,4,7,9,10] -> "2-4, 7, 9-10"
+function collapseRanges(numbers){
+  if(!numbers.length) return "";
+  const parts = [];
+  let start = numbers[0], prev = numbers[0];
+  for(let i=1;i<=numbers.length;i++){
+    const n = numbers[i];
+    if(n === prev+1){ prev = n; continue; }
+    parts.push(start===prev ? `${start}` : `${start}-${prev}`);
+    start = prev = n;
+  }
+  return parts.join(", ");
+}
 function detectMissingTomes(){
   const results = [];
   const seriesNames = [...new Set(OWNED.filter(a=>formatBase(a.format)==="Classique").map(a=>a.serie))];
@@ -2499,21 +2615,19 @@ function renderStats(){
   const soldTotalVente = soldItems.reduce((s,x)=>s+(x.prixVente||0),0);
   const soldDelta = soldTotalVente - soldTotalCout;
   const soldDeltaLabel = (soldDelta>=0?"+":"−")+eur(Math.abs(soldDelta));
-  const soldDeltaColor = soldDelta>=0 ? "#2E5C3E" : "#a32d2d";
 
   const soldRows = soldItems.slice()
     .sort((a,b)=>(b.dateVente||b.soldAt||"").localeCompare(a.dateVente||a.soldAt||""))
     .map(s=>{
       const delta = (s.cout!=null && s.prixVente!=null) ? (s.prixVente - s.cout) : null;
       const deltaLabel = delta==null ? "Non renseigné" : (delta>=0?"+":"−")+eur(Math.abs(delta));
-      const deltaColor = delta==null ? "var(--ink-soft)" : (delta>=0 ? "#2E5C3E" : "#a32d2d");
       return `
         <div class="wish-row" data-solddetail="${s.num}" style="cursor:pointer;">
           <div class="wish-main">
             <div class="wish-title">${s.titre}</div>
             <div class="wish-sub">${eur(s.prixVente)}${s.dateVente ? " · "+formatDateFR(s.dateVente) : ""}${s.lieuVente ? " · "+s.lieuVente : ""}</div>
           </div>
-          <div class="mono" style="font-size:12.5px; font-weight:700; color:${deltaColor}; flex:0 0 auto;">${deltaLabel}</div>
+          <div class="mono" style="font-size:12.5px; font-weight:700; color:var(--ink); flex:0 0 auto;">${deltaLabel}</div>
         </div>
       `;
     }).join("") || `<div class="empty">Aucune BD vendue pour l'instant.</div>`;
@@ -2621,7 +2735,7 @@ function renderStats(){
         <div class="acc-body">
           <div class="mini-stats-2" style="margin-bottom:16px;">
             <div class="card mini-stat" style="background:var(--well);"><div class="val mono">${eur(soldTotalCout)} → ${eur(soldTotalVente)}</div><div class="lab">Coût → Vente cumulés</div></div>
-            <div class="card mini-stat" style="background:var(--well);"><div class="val mono" style="color:${soldDeltaColor};">${soldDeltaLabel}</div><div class="lab">Plus/moins-value totale</div></div>
+            <div class="card mini-stat" style="background:var(--well);"><div class="val mono">${soldDeltaLabel}</div><div class="lab">Plus/moins-value totale</div></div>
           </div>
           <div id="soldResults">${soldRows}</div>
           ${lieuList.length ? `
@@ -2636,11 +2750,15 @@ function renderStats(){
       <details class="card profile-card">
         <summary>Tomes manquants détectés<span class="acc-sub">${missingTomes.length} série${missingTomes.length>1?"s":""}</span></summary>
         <div class="acc-body">
-          <p style="font-size:13px; line-height:1.6; margin:0; color:var(--ink);">${missingTomes.map(m=>m.exhaustive
-            ? `<strong>${m.serie}</strong> (${m.max-m.min+1} tomes existent, numérotés de ${m.min} à ${m.max}) : il te manque le${m.missing.length>1?"s":""} tome${m.missing.length>1?"s":""} ${m.missing.join(", ")}`
-            : `<strong>${m.serie}</strong> (entre les tomes ${m.min} et ${m.max} de ta collection) : tome${m.missing.length>1?"s":""} ${m.missing.join(", ")}`
-          ).join("<br>")}</p>
-          <p style="color:var(--ink-soft); font-size:11.5px; line-height:1.5; margin-top:10px;">${missingTomes.some(m=>m.exhaustive) ? "Pour les séries où le nombre réel de tomes m'a été confirmé, la vérification couvre l'intégralité de la série. " : ""}Pour les autres, seuls les trous entre le premier et le dernier tome déjà dans ta collection sont vérifiés — je ne connais pas le nombre total de tomes réellement publiés, donc ceci ne présume pas qu'elles s'arrêtent là.</p>
+          ${missingTomes.map(m=>`
+            <div class="bar-row" style="margin-bottom:14px;">
+              <div style="font-size:13.5px; font-weight:600; color:var(--ink); margin-bottom:3px;">${m.serie}</div>
+              <div style="font-size:12.5px; color:var(--ink-soft); line-height:1.5;">
+                Tome${m.missing.length>1?"s":""} ${collapseRanges(m.missing)}
+                ${m.exhaustive ? ` — sur ${m.max-m.min+1} au total` : ` — entre les tomes ${m.min} et ${m.max} possédés`}
+              </div>
+            </div>
+          `).join("")}
         </div>
       </details>
     ` : ""}
@@ -2804,7 +2922,6 @@ function renderSoldDetail(num){
   if(!s) return "";
   const delta = (s.cout!=null && s.prixVente!=null) ? (s.prixVente - s.cout) : null;
   const deltaLabel = delta==null ? "Non renseigné" : (delta>=0?"+":"−")+eur(Math.abs(delta));
-  const deltaColor = delta==null ? "var(--ink)" : (delta>=0 ? "#2E5C3E" : "#a32d2d");
   const photos = PHOTOS["ex"+num] || [];
   const photoThumbs = photos.map(src=>`<div class="photo-thumb"><img src="${src}"></div>`).join("");
   return `
@@ -2817,7 +2934,7 @@ function renderSoldDetail(num){
     <div class="ledger" style="margin-top:14px;">
       <div><div class="v mono">${eur(s.cout)}</div><div class="l">Coût d'achat</div></div>
       <div><div class="v mono">${eur(s.prixVente)}</div><div class="l">Prix de vente</div></div>
-      <div><div class="v mono" style="color:${deltaColor};">${deltaLabel}</div><div class="l">Plus/moins-value</div></div>
+      <div><div class="v mono">${deltaLabel}</div><div class="l">Plus/moins-value</div></div>
     </div>
     <p style="font-size:12.5px; color:var(--ink-soft); margin:14px 2px 0;">
       Vendue ${s.dateVente ? "le "+formatDateFR(s.dateVente) : "à une date non renseignée"}${s.lieuVente ? " sur/via "+s.lieuVente : ""}.
@@ -3479,7 +3596,7 @@ function renderSheet(){
       <button class="btn-edit" id="editExBtn">Modifier</button>
       <button class="btn-delete" id="deleteExBtn">Supprimer</button>
     </div>
-    <button type="button" class="btn-sold visitor-hide" id="markSoldBtn" style="width:100%; margin-top:8px;">💰 Marquer comme vendu</button>
+    <button type="button" class="btn-sold visitor-hide" id="markSoldBtn" style="width:100%; margin-top:8px;">Marquer comme vendu</button>
   `;
 }
 
@@ -3801,12 +3918,12 @@ function renderGuide(){
     },
     {
       q: "Marquer une BD comme vendue",
-      a: `Sur la fiche d'un exemplaire, le bouton "💰 Marquer comme vendu" (sous Modifier/Supprimer) ouvre un petit formulaire : prix de vente (obligatoire), date (aujourd'hui par défaut, modifiable) et lieu ou plateforme (Vinted, eBay, brocante… avec suggestions basées sur ce que tu as déjà utilisé). Une fois confirmée, la BD sort de ta collection active — elle ne compte plus dans les statistiques générales (coût total, répartitions, étagère…), exactement comme si tu ne l'avais plus.<br><br>
+      a: `Sur la fiche d'un exemplaire, le bouton "Marquer comme vendu" (sous Modifier/Supprimer) ouvre un petit formulaire : prix de vente (obligatoire), date (aujourd'hui par défaut, modifiable) et lieu ou plateforme (Vinted, eBay, brocante… avec suggestions basées sur ce que tu as déjà utilisé). Une fois confirmée, la BD sort de ta collection active — elle ne compte plus dans les statistiques générales (coût total, répartitions, étagère…), exactement comme si tu ne l'avais plus.<br><br>
           Elle reste consultable dans une nouvelle section "BD vendues" de l'onglet Mon profil, avec pour chacune sa plus ou moins-value (différence entre le prix de vente et le coût d'achat, en vert si tu as gagné, en rouge si tu as perdu), une statistique globale sur l'ensemble de tes ventes, et une répartition par lieu/plateforme pour voir où tu vends le plus et pour combien. Cliquer sur une BD vendue ouvre sa fiche complète, avec un bouton pour annuler la vente et la restaurer dans ta collection si besoin — comme pour la Corbeille, restaurer une BD de base qui avait été modifiée avant sa vente ne restaure que sa version d'origine, pas les modifications faites entre-temps.`
     },
     {
       q: "L'onglet Ajouter",
-      a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Si la série et le titre que tu ajoutes correspondent à une BD déjà dans ta collection, une confirmation te demande si c'est le même album (elle vient alors s'ajouter comme exemplaire supplémentaire, quels que soient le tome ou le format tapés) ou une BD différente (elle est alors ajoutée séparément). Le bouton "Ajouter dans la liste de souhait" (sous le bouton principal) enregistre juste la Série et le Titre déjà saisis dans ta liste d'achats à faire, visible et modifiable dans l'onglet Mon profil — sans remplir tout le reste du formulaire. Si une série et un titre que tu ajoutes à la collection correspondent (insensible aux accents et majuscules) à un article de ta liste de souhait, il en est automatiquement retiré.`
+      a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Tu peux ajouter des photos dès cette étape (avant même d'avoir validé le formulaire) — elles suivent automatiquement la BD une fois enregistrée. Si la série et le titre que tu ajoutes correspondent à une BD déjà dans ta collection, une confirmation te demande si c'est le même album (elle vient alors s'ajouter comme exemplaire supplémentaire, quels que soient le tome ou le format tapés) ou une BD différente (elle est alors ajoutée séparément). Le bouton "Ajouter dans la liste de souhait" (sous le bouton principal) enregistre juste la Série et le Titre déjà saisis dans ta liste d'achats à faire, visible et modifiable dans l'onglet Mon profil — sans remplir tout le reste du formulaire. Si une série et un titre que tu ajoutes à la collection correspondent (insensible aux accents et majuscules) à un article de ta liste de souhait, il en est automatiquement retiré.`
     },
     {
       q: "L'onglet Para-BD",
@@ -3837,9 +3954,10 @@ function renderGuide(){
 
           <strong>Comment exporter une sauvegarde, étape par étape</strong><br>
           1. Onglet Ajouter → section "Sauvegarde locale" → bouton "Exporter la sauvegarde"<br>
-          2. Le menu de partage natif de l'iPhone s'ouvre : choisis où envoyer le fichier — Mail (te l'envoyer par e-mail), Enregistrer dans Fichiers (le garder sur le téléphone ou iCloud Drive), AirDrop (vers un autre appareil), etc.<br>
-          3. Le fichier s'appelle <em>sauvegarde_bd_vX.Y.Z_JJ-MM-AA.json.gz</em> (ou <em>.json</em> si ton navigateur ne sait pas compresser) — le numéro de version de l'appli et la date du jour de l'export.<br>
-          4. Un message sous les boutons confirme si l'export a réussi ou non — s'il indique un échec, retente l'export.<br><br>
+          2. Si tu as beaucoup de photos (au-delà d'une soixantaine de Mo), une question te demande d'abord si tu veux les inclure ou non — les inclure peut échouer faute de mémoire disponible sur l'appareil ; les exclure crée une sauvegarde plus légère et fiable (tout le reste y est quand même : BD, Para-BD, liste de souhait, ventes…), à compléter avec le bouton "Exporter uniquement les photos (.zip)" pour elles séparément.<br>
+          3. Le menu de partage natif de l'iPhone s'ouvre : choisis où envoyer le fichier — Mail (te l'envoyer par e-mail), Enregistrer dans Fichiers (le garder sur le téléphone ou iCloud Drive), AirDrop (vers un autre appareil), etc.<br>
+          4. Le fichier s'appelle <em>sauvegarde_bd_vX.Y.Z_JJ-MM-AA.json.gz</em> (ou <em>.json</em> si ton navigateur ne sait pas compresser, ou si le fichier est trop volumineux pour que ça vaille le coup) — le numéro de version de l'appli et la date du jour de l'export.<br>
+          5. Un message sous les boutons confirme si l'export a réussi ou non — s'il indique un échec, retente en excluant les photos si ce n'est pas déjà fait.<br><br>
 
           <strong>Comment importer une sauvegarde, étape par étape</strong><br>
           1. Assure-toi que le fichier est accessible sur le téléphone où tu veux l'importer (transfère-le au préalable si besoin : AirDrop, e-mail, iCloud Drive…)<br>
@@ -3890,6 +4008,8 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.30", date:"22/07/2026", summary:"Correction d'un échec d'export sur les grosses collections de photos (manque de mémoire sur certains appareils) : au-delà d'une soixantaine de Mo de photos, l'export propose maintenant de les exclure (le reste de la sauvegarde est complet quand même), et saute une étape de compression inutile sur des JPEG déjà compressés pour limiter la mémoire utilisée. Le message d'échec, s'il arrive quand même, précise désormais la cause." },
+  { version:"1.2.29", date:"22/07/2026", summary:"Le bouton « Marquer comme vendu » perd son emoji, et la plus/moins-value (par vente et au total) s'affiche désormais sans code couleur vert/rouge. Il est maintenant possible d'ajouter des photos dès la création d'une BD, sans attendre de l'avoir déjà enregistrée. La section Tomes manquants passe d'un paragraphe unique à une ligne par série, avec les tomes condensés en plages lisibles (ex. « 10-25 » plutôt que listés un par un)." },
   { version:"1.2.28", date:"22/07/2026", summary:"Nouveau : marquer une BD comme vendue (bouton dédié sur sa fiche, avec prix, date et lieu/plateforme). Elle sort de la collection active — et des statistiques générales — mais reste consultable dans une nouvelle section « BD vendues » de Mon profil, avec la plus ou moins-value par vente et au total, une répartition par lieu de vente, et la possibilité d'annuler une vente." },
   { version:"1.2.27", date:"22/07/2026", summary:"Correction d'un bug important : la reconstruction du catalogue de base depuis le PDF (v1.2.25) avait décalé la numérotation interne de la plupart des BD existantes, faisant apparaître les photos déjà enregistrées sur le mauvais album. La numérotation d'origine est restaurée pour toutes les BD déjà existantes (seules les 2 BD réellement nouvelles reçoivent un numéro inédit, 151 et 152) — un nouveau fichier de migration financière corrigé accompagne cette version." },
   { version:"1.2.26", date:"22/07/2026", summary:"Nouveau : mode visiteur. Depuis l'onglet Ajouter, un bouton doré « Partager avec un visiteur » génère un accès en lecture seule, limité dans le temps (10 min à 1h), à envoyer par le partage natif. Le visiteur consulte la collection et les statistiques non financières, sans jamais voir coût/vente ni pouvoir rien modifier — l'onglet Ajouter lui est totalement invisible. L'accès s'auto-efface à l'expiration, dans un espace de stockage entièrement séparé des données réelles (jamais mélangé, jamais à risque)." },
@@ -4051,6 +4171,22 @@ function render(){
     attachCombo("f_format", "combo_format", distinctFormats);
     attachCombo("f_editeur", "combo_editeur", distinctEditeurs);
   }
+  const addDraftPhotoInput = document.getElementById("addDraftPhotoInput");
+  if(addDraftPhotoInput){
+    addDraftPhotoInput.addEventListener("change", async e=>{
+      const key = "ex"+addDraftNum;
+      const files = Array.from(e.target.files || []);
+      if(!files.length) return;
+      const compressed = await Promise.all(files.map(f=>compressImage(f).catch(()=>null)));
+      if(!PHOTOS[key]) PHOTOS[key] = [];
+      compressed.filter(Boolean).forEach(src=>PHOTOS[key].push(src));
+      await idbSavePhotosFor(key);
+      const strip = document.getElementById("addDraftPhotoStrip");
+      if(strip) strip.innerHTML = renderAddDraftPhotoThumbs();
+      bindAddDraftPhotoDelete();
+    });
+  }
+  bindAddDraftPhotoDelete();
   const addWishBtn = document.getElementById("addWishBtn");
   if(addWishBtn) addWishBtn.addEventListener("click", handleAddWish);
   const exportBtn = document.getElementById("exportBtn");
@@ -4193,6 +4329,7 @@ document.querySelectorAll("nav.tabbar button").forEach(b=>{
     state.tab = b.dataset.tab;
     if(state.tab==="shelf"){ state.shelfCovers = false; }
     if(state.tab==="parabd"){ parabdState = { level:"series", serie:null, categorie:null, collection:null, annee:null, sort:"add" }; parabdQuery=""; }
+    if(state.tab==="ajouter" && addDraftNum===null){ addDraftNum = nextUserNum(); }
     render();
     const appEl = document.getElementById("app");
     if(appEl) appEl.scrollTop = 0;
@@ -4259,5 +4396,6 @@ if(VISITOR_EXPIRED){
   });
 }
 </script>
-</body>
-</html>
+
+
+</body></html>
