@@ -320,6 +320,7 @@
   .sheet-actions button{ flex:1; padding:11px; border-radius:11px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:var(--card); }
   .btn-edit{ color:var(--accent); }
   .btn-delete{ color:#a32d2d; }
+  .btn-sold{ padding:11px; border-radius:11px; font-size:13.5px; font-weight:600; border:1px solid #2E5C3E; background:#EAF4EC; color:#2E5C3E; }
   .confirm-overlay{ position:fixed; inset:0; background:rgba(23,23,26,0.45); z-index:60; display:flex; align-items:center; justify-content:center; padding:24px; }
   .confirm-box{ background:var(--card); border-radius:16px; padding:20px; max-width:340px; width:100%; color:var(--ink); }
   .confirm-msg{ font-size:14.5px; line-height:1.5; margin:0 0 18px; text-align:center; }
@@ -678,6 +679,70 @@ function loadBaseFinances(){ try{ return JSON.parse(localStorage.getItem(LSKEY(L
 function saveBaseFinances(){ try{ localStorage.setItem(LSKEY(LS_BASE_FINANCES), JSON.stringify(baseFinances)); }catch(e){} }
 let baseFinances = loadBaseFinances(); // { [num]: { cout, vente } } — uniquement pour les BD de base (num < USER_ID_BASE)
 
+/* ================================================================
+   BD VENDUES — instantané complet de l'exemplaire au moment de la vente
+   (comme la Corbeille), + les informations propres à la vente elle-même.
+   Retire l'exemplaire de la collection active, comme une suppression,
+   mais dans une liste séparée et restaurable, jamais la Corbeille.
+   ================================================================ */
+function normalizeSoldItem(s){
+  return {
+    num: s.num, displayNum: s.displayNum ?? null,
+    serie: s.serie, titre: s.titre, tome: s.tome, format: s.format,
+    eo: !!s.eo, annee: s.annee ?? null, editeur: s.editeur ?? null, etat: s.etat ?? null,
+    cout: s.cout ?? null, cote: s.cote ?? null, commentaire: s.commentaire ?? "",
+    prixVente: s.prixVente ?? null, dateVente: s.dateVente ?? null, lieuVente: s.lieuVente ?? "",
+    soldAt: s.soldAt ?? null
+  };
+}
+const LS_SOLD = "bdcollection_vendues_v1";
+function loadSold(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_SOLD))) || []).map(normalizeSoldItem); }catch(e){ return []; } }
+function saveSold(){ try{ localStorage.setItem(LSKEY(LS_SOLD), JSON.stringify(soldItems)); }catch(e){} }
+let soldItems = loadSold();
+function markAsSold(num, prixVente, dateVente, lieuVente){
+  const album = ALBUMS.find(a=>a.exemplaires.some(e=>e.num===num));
+  const ex = album && album.exemplaires.find(e=>e.num===num);
+  if(!album || !ex) return;
+  soldItems.push({
+    num, displayNum: ex.displayNum ?? null,
+    serie: album.serie, titre: album.titre, tome: album.tome, format: album.format,
+    eo: ex.eo, annee: ex.annee, editeur: ex.editeur, etat: ex.etat, cout: ex.cout, cote: ex.cote, commentaire: ex.commentaire,
+    prixVente, dateVente, lieuVente: lieuVente || "",
+    soldAt: new Date().toISOString()
+  });
+  saveSold();
+  userAdded = userAdded.filter(r=>r.num!==num);
+  if(num < USER_ID_BASE){
+    deletedNums.add(num);
+    saveDeleted();
+  }
+  saveAdded(userAdded);
+  refreshDerived();
+}
+function restoreSoldItem(num){
+  const idx = soldItems.findIndex(s=>s.num===num);
+  if(idx<0) return;
+  const snapshot = soldItems[idx];
+  soldItems.splice(idx,1);
+  saveSold();
+  if(num < USER_ID_BASE){
+    // BD de base : on retire juste le masquage, l'original réapparaît tel quel depuis RAW
+    // (comme pour la Corbeille, une éventuelle modification antérieure à la vente n'est pas restaurée)
+    deletedNums.delete(num);
+    saveDeleted();
+    userAdded = userAdded.filter(r=>r.num!==num);
+  } else {
+    userAdded.push({
+      num, serie:snapshot.serie, titre:snapshot.titre, tome:snapshot.tome, format:snapshot.format,
+      eo:snapshot.eo, annee:snapshot.annee, editeur:snapshot.editeur, etat:snapshot.etat,
+      cout:snapshot.cout, vente:null, cote:snapshot.cote, commentaire:snapshot.commentaire,
+      displayNum: snapshot.displayNum || nextDisplayNum(), owned:true
+    });
+  }
+  saveAdded(userAdded);
+  refreshDerived();
+}
+
 function deleteParaItem(id){
   const idx = parabdItems.findIndex(p=>p.id===id);
   if(idx>=0){
@@ -836,7 +901,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.27"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.2.28"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -1165,6 +1230,11 @@ function formatDateTime(iso){
   const d = new Date(iso);
   return d.toLocaleDateString("fr-FR") + " à " + d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
 }
+function formatDateFR(dateStr){
+  if(!dateStr) return "";
+  const d = new Date(dateStr+"T00:00:00");
+  return d.toLocaleDateString("fr-FR");
+}
 // Âge à partir d'une année de parution/fabrication. Rien n'est affiché si l'année est absente ou invalide.
 function ageFromAnnee(annee){
   const y = parseInt((annee||"").toString(), 10);
@@ -1272,6 +1342,7 @@ function distinctFormatBases(serie){
   return [...new Set(source.map(a=>formatBase(a.format)))].sort((a,b)=>a.localeCompare(b,"fr"));
 }
 function distinctEditeurs(){ return distinctValues(OWNED.flatMap(a=>a.exemplaires.map(e=>e.editeur))); }
+function distinctLieuxVente(){ return distinctValues(soldItems.map(s=>s.lieuVente)); }
 
 // --- Helpers Para-BD ---
 function distinctParaSeries(){ return distinctValues(parabdItems.map(p=>p.serie)).sort((a,b)=>a.localeCompare(b,"fr")); }
@@ -1932,7 +2003,7 @@ async function generateAndShareVisitorFile(){
       deleted: [...deletedNums],
       parabd: parabdItems.map(p=>visitorParaFrom(p, includeComments)),
       photos: includePhotos ? PHOTOS : {}
-      // wishlist, bdTrash, parabdTrash, baseFinances : jamais inclus dans un partage visiteur
+      // wishlist, bdTrash, parabdTrash, baseFinances, sold : jamais inclus dans un partage visiteur
     };
 
     const jsonText = JSON.stringify(payload);
@@ -2028,7 +2099,7 @@ async function exportBackup(){
   try{
     const payload = {
       schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, photos: PHOTOS
+      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, sold: soldItems, photos: PHOTOS
     };
     const now = new Date();
     const dd = String(now.getDate()).padStart(2,"0");
@@ -2140,6 +2211,10 @@ function importBackup(file){
       const incomingBaseFinances = (data.baseFinances && typeof data.baseFinances === "object") ? data.baseFinances : {};
       Object.keys(incomingBaseFinances).forEach(k=>{ baseFinances[k] = incomingBaseFinances[k]; });
       saveBaseFinances();
+      const incomingSold = (Array.isArray(data.sold) ? data.sold : []).map(normalizeSoldItem);
+      const existingSoldNums = new Set(soldItems.map(s=>s.num));
+      incomingSold.forEach(s=>{ if(!existingSoldNums.has(s.num)){ soldItems.push(s); existingSoldNums.add(s.num); } });
+      saveSold();
       const incomingPhotos = data.photos || {};
       const changedKeys = [];
       Object.keys(incomingPhotos).forEach(key=>{
@@ -2419,6 +2494,51 @@ function renderStats(){
 
   const missingTomes = detectMissingTomes();
 
+  // --- BD vendues ---
+  const soldTotalCout = soldItems.reduce((s,x)=>s+(x.cout||0),0);
+  const soldTotalVente = soldItems.reduce((s,x)=>s+(x.prixVente||0),0);
+  const soldDelta = soldTotalVente - soldTotalCout;
+  const soldDeltaLabel = (soldDelta>=0?"+":"−")+eur(Math.abs(soldDelta));
+  const soldDeltaColor = soldDelta>=0 ? "#2E5C3E" : "#a32d2d";
+
+  const soldRows = soldItems.slice()
+    .sort((a,b)=>(b.dateVente||b.soldAt||"").localeCompare(a.dateVente||a.soldAt||""))
+    .map(s=>{
+      const delta = (s.cout!=null && s.prixVente!=null) ? (s.prixVente - s.cout) : null;
+      const deltaLabel = delta==null ? "Non renseigné" : (delta>=0?"+":"−")+eur(Math.abs(delta));
+      const deltaColor = delta==null ? "var(--ink-soft)" : (delta>=0 ? "#2E5C3E" : "#a32d2d");
+      return `
+        <div class="wish-row" data-solddetail="${s.num}" style="cursor:pointer;">
+          <div class="wish-main">
+            <div class="wish-title">${s.titre}</div>
+            <div class="wish-sub">${eur(s.prixVente)}${s.dateVente ? " · "+formatDateFR(s.dateVente) : ""}${s.lieuVente ? " · "+s.lieuVente : ""}</div>
+          </div>
+          <div class="mono" style="font-size:12.5px; font-weight:700; color:${deltaColor}; flex:0 0 auto;">${deltaLabel}</div>
+        </div>
+      `;
+    }).join("") || `<div class="empty">Aucune BD vendue pour l'instant.</div>`;
+
+  const lieuCounts = {};
+  soldItems.forEach(s=>{
+    const l = s.lieuVente || "Non renseigné";
+    if(!lieuCounts[l]) lieuCounts[l] = { count:0, total:0 };
+    lieuCounts[l].count++;
+    lieuCounts[l].total += (s.prixVente||0);
+  });
+  const lieuList = Object.entries(lieuCounts).map(([lieu,v])=>({lieu, ...v})).sort((a,b)=>b.total-a.total);
+  const lieuMax = Math.max(...lieuList.map(l=>l.total), 1);
+  const lieuBars = lieuList.map(l=>{
+    const items = soldItems.filter(s=>(s.lieuVente||"Non renseigné")===l.lieu);
+    const list = items.map(s=>`<div class="rarity-row"><span style="flex:1;">${s.titre} <span style="color:var(--ink-soft);">· ${eur(s.prixVente)}${s.dateVente?" · "+formatDateFR(s.dateVente):""}</span></span></div>`).join("");
+    return `
+      <div class="bar-row">
+        <div class="bar-label"><span>${l.lieu}</span><span class="mono">${l.count} · ${eur(l.total)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(l.total/lieuMax*100).toFixed(0)}%; background:var(--gold);"></div></div>
+      </div>
+      <details class="mini-details"><summary>Voir les BD (${items.length})</summary><div class="mini-details-body">${list}</div></details>
+    `;
+  }).join("");
+
   const trashCount = trashedRows().length + parabdTrash.length;
   const corbeilleInner = renderCorbeilleSection();
 
@@ -2492,6 +2612,23 @@ function renderStats(){
       <details class="card profile-card">
         <summary>Para-BD par catégorie<span class="acc-sub">${parabdItems.length}</span></summary>
         <div class="acc-body">${paraCatBars}</div>
+      </details>
+    ` : ""}
+
+    ${soldItems.length ? `
+      <details class="card profile-card visitor-hide">
+        <summary>BD vendues<span class="acc-sub">${soldItems.length}</span></summary>
+        <div class="acc-body">
+          <div class="mini-stats-2" style="margin-bottom:16px;">
+            <div class="card mini-stat" style="background:var(--well);"><div class="val mono">${eur(soldTotalCout)} → ${eur(soldTotalVente)}</div><div class="lab">Coût → Vente cumulés</div></div>
+            <div class="card mini-stat" style="background:var(--well);"><div class="val mono" style="color:${soldDeltaColor};">${soldDeltaLabel}</div><div class="lab">Plus/moins-value totale</div></div>
+          </div>
+          <div id="soldResults">${soldRows}</div>
+          ${lieuList.length ? `
+            <p class="section-title">Répartition par lieu de vente</p>
+            ${lieuBars}
+          ` : ""}
+        </div>
       </details>
     ` : ""}
 
@@ -2658,6 +2795,52 @@ function openWishDetail(id){
   });
 }
 let wishDetailId = null;
+
+/* ================================================================
+   FICHE DÉTAIL D'UNE BD VENDUE
+   ================================================================ */
+function renderSoldDetail(num){
+  const s = soldItems.find(x=>x.num===num);
+  if(!s) return "";
+  const delta = (s.cout!=null && s.prixVente!=null) ? (s.prixVente - s.cout) : null;
+  const deltaLabel = delta==null ? "Non renseigné" : (delta>=0?"+":"−")+eur(Math.abs(delta));
+  const deltaColor = delta==null ? "var(--ink)" : (delta>=0 ? "#2E5C3E" : "#a32d2d");
+  const photos = PHOTOS["ex"+num] || [];
+  const photoThumbs = photos.map(src=>`<div class="photo-thumb"><img src="${src}"></div>`).join("");
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">${s.serie} · Vendue</div>
+    <div class="sheet-title">${s.titre}</div>
+    <div class="sheet-meta">${s.format} · ${s.editeur||"Non renseigné"} · ${s.annee||"Non renseigné"}${ageFromAnnee(s.annee)}</div>
+    ${photos.length ? `<div class="photo-strip">${photoThumbs}</div>` : ""}
+    <div class="ledger" style="margin-top:14px;">
+      <div><div class="v mono">${eur(s.cout)}</div><div class="l">Coût d'achat</div></div>
+      <div><div class="v mono">${eur(s.prixVente)}</div><div class="l">Prix de vente</div></div>
+      <div><div class="v mono" style="color:${deltaColor};">${deltaLabel}</div><div class="l">Plus/moins-value</div></div>
+    </div>
+    <p style="font-size:12.5px; color:var(--ink-soft); margin:14px 2px 0;">
+      Vendue ${s.dateVente ? "le "+formatDateFR(s.dateVente) : "à une date non renseignée"}${s.lieuVente ? " sur/via "+s.lieuVente : ""}.
+    </p>
+    <p class="sheet-note">${s.commentaire || "Aucun commentaire."}</p>
+    <div class="sheet-actions visitor-hide">
+      <button class="btn-edit" id="restoreSoldBtn" style="width:100%;">Restaurer dans la collection</button>
+    </div>
+  `;
+}
+function openSoldDetail(num){
+  document.getElementById("sheet").innerHTML = renderSoldDetail(num);
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+  const restoreBtn = document.getElementById("restoreSoldBtn");
+  if(restoreBtn) restoreBtn.addEventListener("click", ()=>{
+    showConfirm("Restaurer cette BD dans ta collection ? Elle sortira de la liste des BD vendues.", "Restaurer", ()=>{
+      restoreSoldItem(num);
+      closeDetail();
+      render();
+    });
+  });
+}
 
 /* ================================================================
    RENDU : PARA-BD (objets dérivés — fèves, figurines, etc.)
@@ -3296,6 +3479,7 @@ function renderSheet(){
       <button class="btn-edit" id="editExBtn">Modifier</button>
       <button class="btn-delete" id="deleteExBtn">Supprimer</button>
     </div>
+    <button type="button" class="btn-sold visitor-hide" id="markSoldBtn" style="width:100%; margin-top:8px;">💰 Marquer comme vendu</button>
   `;
 }
 
@@ -3378,6 +3562,68 @@ function bindSheetEvents(){
       render();
     });
   });
+  const markSoldBtn = document.getElementById("markSoldBtn");
+  if(markSoldBtn) markSoldBtn.addEventListener("click", ()=>{
+    const a = ALBUMS.find(x=>x.aid===sheetState.aid);
+    const ex = a.exemplaires[sheetState.exIndex];
+    openSoldForm(ex.num);
+  });
+}
+
+/* ================================================================
+   MARQUER COMME VENDU
+   ================================================================ */
+let soldFormTargetNum = null;
+function renderSoldForm(num){
+  const a = ALBUMS.find(x=>x.exemplaires.some(e=>e.num===num));
+  const today = new Date().toISOString().slice(0,10);
+  return `
+    <button class="close-x" id="closeSheet">&times;</button>
+    <div class="sheet-handle"></div>
+    <div class="sheet-eyebrow">Vente</div>
+    <div class="sheet-title">${a ? a.titre : "Marquer comme vendu"}</div>
+    <form id="soldForm">
+      <div class="field"><label>Prix de vente (€) *</label><input id="sf_prix" type="number" step="0.01" inputmode="decimal" required></div>
+      <div class="field"><label>Date de vente</label><input id="sf_date" type="date" value="${today}"></div>
+      <div class="field">
+        <label>Lieu / plateforme de vente</label>
+        <input id="sf_lieu" placeholder="ex. Vinted, eBay, brocante…" autocomplete="off">
+        <div class="combo-list" id="combo_lieu"></div>
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%;">Confirmer la vente</button>
+    </form>
+    <div class="form-msg" id="soldFormMsg"></div>
+  `;
+}
+function openSoldForm(num){
+  soldFormTargetNum = num;
+  document.getElementById("sheet").innerHTML = renderSoldForm(num);
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("backdrop").classList.add("open");
+  attachCombo("sf_lieu", "combo_lieu", distinctLieuxVente);
+  const form = document.getElementById("soldForm");
+  if(form) form.addEventListener("submit", handleSoldSubmit);
+}
+function handleSoldSubmit(e){
+  e.preventDefault();
+  const prix = parseFloat(document.getElementById("sf_prix").value);
+  if(isNaN(prix)){
+    showAlert("Indique un prix de vente valide pour confirmer la vente.");
+    return;
+  }
+  const date = document.getElementById("sf_date").value || null;
+  const lieu = document.getElementById("sf_lieu").value.trim();
+  const num = soldFormTargetNum;
+  const a = ALBUMS.find(x=>x.exemplaires.some(e=>e.num===num));
+  showConfirm(
+    `Confirmer la vente de « ${a ? a.titre : "cette BD"} » pour ${eur(prix)} ? Elle sera retirée de ta collection active et retrouvable dans "BD vendues" (onglet Mon profil).`,
+    "Confirmer la vente",
+    ()=>{
+      markAsSold(num, prix, date, lieu);
+      closeDetail();
+      render();
+    }
+  );
 }
 
 /* ================================================================
@@ -3554,6 +3800,11 @@ function renderGuide(){
       a: `Recherche par titre, série ou éditeur — insensible aux majuscules et aux accents (tape "asterix" retrouve bien "Astérix"). Deux menus déroulants permettent de filtrer par format et de trier (numéro, alphabétique, valeur, côte, tome, ordre de parution, EO d'abord). Le tri par tome respecte d'abord la série puis le format : par exemple pour Barbe-Rouge, tu verras tous les tomes du format "Classique" dans l'ordre, puis tous les tomes du format "Intégral" dans l'ordre — les deux numérotations ne sont jamais mélangées. Les chips en haut filtrent par série. Quand un album existe en plusieurs exemplaires (état différent, par exemple), une seule ligne apparaît avec la mention "en double" ou "en triple" — les détails de chaque exemplaire sont accessibles dans sa fiche. Le petit numéro affiché à gauche de chaque ligne correspond au numéro de fiche d'origine pour les 150 BD de base ; pour une BD que tu ajoutes, il continue simplement après le dernier numéro déjà attribué (151, 152…) et reste définitivement le sien, même après une suppression puis restauration depuis la Corbeille. Sur la fiche d'un exemplaire, l'âge (calculé automatiquement à partir de l'année d'aujourd'hui) s'affiche entre parenthèses juste après l'année, si elle est renseignée. "Non renseigné" indique simplement qu'un champ n'a pas été rempli.`
     },
     {
+      q: "Marquer une BD comme vendue",
+      a: `Sur la fiche d'un exemplaire, le bouton "💰 Marquer comme vendu" (sous Modifier/Supprimer) ouvre un petit formulaire : prix de vente (obligatoire), date (aujourd'hui par défaut, modifiable) et lieu ou plateforme (Vinted, eBay, brocante… avec suggestions basées sur ce que tu as déjà utilisé). Une fois confirmée, la BD sort de ta collection active — elle ne compte plus dans les statistiques générales (coût total, répartitions, étagère…), exactement comme si tu ne l'avais plus.<br><br>
+          Elle reste consultable dans une nouvelle section "BD vendues" de l'onglet Mon profil, avec pour chacune sa plus ou moins-value (différence entre le prix de vente et le coût d'achat, en vert si tu as gagné, en rouge si tu as perdu), une statistique globale sur l'ensemble de tes ventes, et une répartition par lieu/plateforme pour voir où tu vends le plus et pour combien. Cliquer sur une BD vendue ouvre sa fiche complète, avec un bouton pour annuler la vente et la restaurer dans ta collection si besoin — comme pour la Corbeille, restaurer une BD de base qui avait été modifiée avant sa vente ne restaure que sa version d'origine, pas les modifications faites entre-temps.`
+    },
+    {
       q: "L'onglet Ajouter",
       a: `Seuls Série et Titre sont obligatoires pour ajouter une BD ; tout le reste peut être laissé vide. Les champs Série, Titre, Format et Éditeur proposent des suggestions basées sur ce que tu as déjà saisi, insensibles aux accents et majuscules. Si la série et le titre que tu ajoutes correspondent à une BD déjà dans ta collection, une confirmation te demande si c'est le même album (elle vient alors s'ajouter comme exemplaire supplémentaire, quels que soient le tome ou le format tapés) ou une BD différente (elle est alors ajoutée séparément). Le bouton "Ajouter dans la liste de souhait" (sous le bouton principal) enregistre juste la Série et le Titre déjà saisis dans ta liste d'achats à faire, visible et modifiable dans l'onglet Mon profil — sans remplir tout le reste du formulaire. Si une série et un titre que tu ajoutes à la collection correspondent (insensible aux accents et majuscules) à un article de ta liste de souhait, il en est automatiquement retiré.`
     },
@@ -3639,6 +3890,7 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.28", date:"22/07/2026", summary:"Nouveau : marquer une BD comme vendue (bouton dédié sur sa fiche, avec prix, date et lieu/plateforme). Elle sort de la collection active — et des statistiques générales — mais reste consultable dans une nouvelle section « BD vendues » de Mon profil, avec la plus ou moins-value par vente et au total, une répartition par lieu de vente, et la possibilité d'annuler une vente." },
   { version:"1.2.27", date:"22/07/2026", summary:"Correction d'un bug important : la reconstruction du catalogue de base depuis le PDF (v1.2.25) avait décalé la numérotation interne de la plupart des BD existantes, faisant apparaître les photos déjà enregistrées sur le mauvais album. La numérotation d'origine est restaurée pour toutes les BD déjà existantes (seules les 2 BD réellement nouvelles reçoivent un numéro inédit, 151 et 152) — un nouveau fichier de migration financière corrigé accompagne cette version." },
   { version:"1.2.26", date:"22/07/2026", summary:"Nouveau : mode visiteur. Depuis l'onglet Ajouter, un bouton doré « Partager avec un visiteur » génère un accès en lecture seule, limité dans le temps (10 min à 1h), à envoyer par le partage natif. Le visiteur consulte la collection et les statistiques non financières, sans jamais voir coût/vente ni pouvoir rien modifier — l'onglet Ajouter lui est totalement invisible. L'accès s'auto-efface à l'expiration, dans un espace de stockage entièrement séparé des données réelles (jamais mélangé, jamais à risque)." },
   { version:"1.2.25", date:"22/07/2026", summary:"Catalogue de base mis à jour depuis le PDF le plus récent (150 → 152 BD). Le coût d'achat et la valeur de vente des BD de base ne sont plus écrits dans le code de l'application (public sur GitHub) : ils vivent uniquement dans le stockage local du téléphone, alimenté une fois via un fichier de migration à part, puis inclus dans les sauvegardes normales comme le reste. La côte BDM/BD Gest reste inchangée." },
@@ -3842,6 +4094,9 @@ function render(){
   bindParabdSearch();
   bindTrashSearch();
   bindWishlistSearch();
+  document.querySelectorAll("[data-solddetail]").forEach(el=>{
+    el.addEventListener("click", ()=>openSoldDetail(Number(el.dataset.solddetail)));
+  });
 }
 function bindParabdSearch(){
   const searchBox = document.getElementById("parabdSearch");
