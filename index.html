@@ -637,7 +637,9 @@ function normalizeParaItem(p){
     cout: p.cout ?? null,
     commentaire: p.commentaire ?? "",
     deletedAt: p.deletedAt ?? undefined,
-    modifiedAt: p.modifiedAt ?? undefined
+    modifiedAt: p.modifiedAt ?? undefined,
+    addedAt: p.addedAt ?? null,
+    deplacements: p.deplacements ?? undefined
   };
 }
 const LS_PARABD = "bdcollection_parabd_v1";
@@ -804,7 +806,7 @@ function moveParaItem(id, destSerie, destCategorie, destCollection, withDeletion
   }
   // Sans suppression : une copie apparaît à la destination, l'original reste inchangé à sa place.
   const newId = nextParaId();
-  const copy = { ...p, id:newId, serie:destSerie, categorie:destCategorie, collection: destCollection || null, deplacements:[...(p.deplacements||[]), moveRecord] };
+  const copy = { ...p, id:newId, serie:destSerie, categorie:destCategorie, collection: destCollection || null, deplacements:[...(p.deplacements||[]), moveRecord], addedAt:new Date().toISOString() };
   parabdItems.push(copy);
   saveParabd();
   const oldPhotos = PHOTOS["para"+p.id] || [];
@@ -918,7 +920,7 @@ async function purgeParaItem(id){
 }
 function editParaItem(id, fields){
   const idx = parabdItems.findIndex(p=>p.id===id);
-  if(idx>=0) parabdItems[idx] = { ...fields, id, modifiedAt: new Date().toISOString() };
+  if(idx>=0) parabdItems[idx] = { ...fields, id, modifiedAt: new Date().toISOString(), addedAt: parabdItems[idx].addedAt ?? null, deplacements: parabdItems[idx].deplacements ?? undefined };
   saveParabd();
 }
 
@@ -1046,13 +1048,13 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.36"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.2.37"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
   if(Array.isArray(r)){
     const [num, serie, titre, tome, format, eo, annee, editeur, etat, cote, commentaire, owned] = r;
-    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout:null, vente:null, cote, commentaire, owned, modifiedAt:null, displayNum:null };
+    return { num, serie, titre, tome, format, eo:!!eo, annee, editeur, etat, cout:null, vente:null, cote, commentaire, owned, modifiedAt:null, displayNum:null, addedAt:null };
   }
   return {
     num: r.num,
@@ -1061,7 +1063,7 @@ function normalizeRow(r){
     eo: !!r.eo, annee: r.annee ?? null, editeur: r.editeur ?? null, etat: r.etat ?? null,
     cout: r.cout ?? null, vente: r.vente ?? null, cote: r.cote ?? "Non coté",
     commentaire: r.commentaire ?? "", owned: r.owned !== false, modifiedAt: r.modifiedAt ?? null,
-    displayNum: r.displayNum ?? null
+    displayNum: r.displayNum ?? null, addedAt: r.addedAt ?? null
   };
 }
 function nextUserNum(){
@@ -1103,7 +1105,7 @@ function buildAlbums(rawRows, userRows){
   const order = [];
   let aid = 0;
   function processRow(row, isRaw){
-    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cote, commentaire, owned, modifiedAt, displayNum } = row;
+    const { num, serie, titre, tome, format, eo, annee, editeur, etat, cote, commentaire, owned, modifiedAt, displayNum, addedAt } = row;
     if(isRaw && deletedNums.has(num)) return; // BD de base supprimée ou remplacée par une version modifiée
     // Pour une BD de base, coût/vente ne sont plus dans le code : ils viennent uniquement de baseFinances
     // (rempli une fois via le fichier de migration), jamais du fichier public.
@@ -1117,7 +1119,7 @@ function buildAlbums(rawRows, userRows){
     const album = map.get(key);
     if(owned){
       album.owned = true;
-      album.exemplaires.push({ key:"ex"+num, num, eo, annee, editeur, etat, cout, vente, cote, commentaire, modifiedAt, displayNum, forSale: getForSale(num) });
+      album.exemplaires.push({ key:"ex"+num, num, eo, annee, editeur, etat, cout, vente, cote, commentaire, modifiedAt, displayNum, addedAt, forSale: getForSale(num) });
     }
   }
   rawRows.map(normalizeRow).forEach(row=>processRow(row, true));
@@ -1218,7 +1220,7 @@ function editExemplaire(num, fields){
   const withTimestamp = { ...fields, modifiedAt: new Date().toISOString() };
   if(num >= USER_ID_BASE){
     const idx = userAdded.findIndex(r=>r.num===num);
-    if(idx>=0) userAdded[idx] = { ...withTimestamp, num, owned:true, displayNum: userAdded[idx].displayNum ?? null };
+    if(idx>=0) userAdded[idx] = { ...withTimestamp, num, owned:true, displayNum: userAdded[idx].displayNum ?? null, addedAt: userAdded[idx].addedAt ?? null };
   } else {
     deletedNums.add(num); saveDeleted();
     userAdded = userAdded.filter(r=>r.num!==num);
@@ -1562,6 +1564,7 @@ function renderCoverGrid(){
   const seriesAlpha = [...new Set(OWNED.map(a=>a.serie))].sort((a,b)=>a.localeCompare(b,"fr"));
   return seriesAlpha.map(s=>{
     const albums = OWNED.filter(a=>a.serie===s).slice().sort((a,b)=>{
+      const f = formatBase(a.format).localeCompare(formatBase(b.format),"fr"); if(f) return f;
       const na = parseInt(a.tome,10), nb = parseInt(b.tome,10);
       const aNum = !isNaN(na), bNum = !isNaN(nb);
       if(aNum && bNum) return na-nb;
@@ -2662,7 +2665,8 @@ function finalizeAddSubmit(serie, titre, mergeInto){
     vente: isNaN(vente) ? null : vente,
     cote: val("f_cote") || "Non coté",
     commentaire: val("f_commentaire") || "",
-    owned: true
+    owned: true,
+    addedAt: new Date().toISOString()
   };
   userAdded.push(row);
   saveAdded(userAdded);
@@ -2729,6 +2733,19 @@ function computeKnownSeriesCompletion(){
     for(let i=known.min;i<=known.max;i++) if(have.has(i)) owned++;
     return { serie: known.display, owned, total, pct: Math.round((owned/total)*100) };
   }).sort((a,b)=>b.pct-a.pct);
+}
+// Les 10 BD/objets Para-BD les plus récemment ajoutés, tous types confondus.
+// Les BD/objets déjà présents avant l'introduction de cet horodatage n'ont pas de date connue et n'y figurent donc pas.
+function getRecentlyAdded(){
+  const bdItems = OWNED.flatMap(a=>a.exemplaires
+    .map((ex,exIndex)=>({ ex, exIndex }))
+    .filter(x=>x.ex.addedAt)
+    .map(x=>({ type:"bd", addedAt:x.ex.addedAt, aid:a.aid, exIndex:x.exIndex, titre:a.titre, serie:a.serie }))
+  );
+  const paraItems = parabdItems.filter(p=>p.addedAt).map(p=>({
+    type:"para", addedAt:p.addedAt, id:p.id, titre:p.objet || p.categorie, serie:p.serie
+  }));
+  return [...bdItems, ...paraItems].sort((a,b)=>b.addedAt.localeCompare(a.addedAt)).slice(0,10);
 }
 // Condense une liste de nombres triés en plages lisibles, ex. [2,3,4,7,9,10] -> "2-4, 7, 9-10"
 function collapseRanges(numbers){
@@ -2919,6 +2936,7 @@ function renderStats(){
 
   const missingTomes = detectMissingTomes();
   const seriesCompletion = computeKnownSeriesCompletion();
+  const recentlyAdded = getRecentlyAdded();
 
   // --- BD vendues ---
   const soldTotalCout = soldItems.reduce((s,x)=>s+(x.cout||0),0);
@@ -3012,6 +3030,22 @@ function renderStats(){
         ` : ""}
       </div>
     </details>
+
+    ${recentlyAdded.length ? `
+      <details class="card profile-card">
+        <summary>Derniers ajouts<span class="acc-sub">${recentlyAdded.length}</span></summary>
+        <div class="acc-body">
+          ${recentlyAdded.map(r=>`
+            <div class="wish-row" data-recentitem="${r.type}:${r.type==='bd' ? r.aid+':'+r.exIndex : r.id}" style="cursor:pointer;">
+              <div class="wish-main">
+                <div class="wish-title">${r.titre}${r.type==='para' ? ' <span style="color:var(--ink-soft); font-weight:400;">(Para-BD)</span>' : ''}</div>
+                <div class="wish-sub">${r.serie} · ajouté le ${formatDateTime(r.addedAt)}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </details>
+    ` : ""}
 
     <details class="card profile-card visitor-hide">
       <summary>Liste de souhait<span class="acc-sub">${wishlist.length}</span></summary>
@@ -3725,7 +3759,8 @@ function bindParaAddEvents(){
         etat: val("pf_etat") || null,
         editeur: val("pf_editeur") || null,
         cout: isNaN(cout) ? null : cout,
-        commentaire: val("pf_commentaire") || ""
+        commentaire: val("pf_commentaire") || "",
+        addedAt: new Date().toISOString()
       });
       saveParabd();
       parabdState = { level:"items", serie, categorie, collection:null, annee:null, sort:"add", photoView:false };
@@ -4461,7 +4496,7 @@ function renderGuide(){
       a: `<strong>Les deux vues</strong>
       <ul>
         <li><strong>Par tranches</strong> : les séries représentées comme des dos de livres, largeur proportionnelle au nombre d'albums.</li>
-        <li><strong>Par couvertures</strong> : regroupées par série, triées par ordre de tome, avec la photo de chaque album si tu en as ajouté une.</li>
+        <li><strong>Par couvertures</strong> : regroupées par série, triées par format puis par ordre de tome (les différentes éditions d'une série, comme "Classique" et "Intégrale", ne sont jamais mélangées entre elles), avec la photo de chaque album si tu en as ajouté une.</li>
         <li>L'interrupteur en haut bascule de l'une à l'autre ; revenir sur cet onglet remet toujours la vue par tranches par défaut.</li>
       </ul>
       <strong>La vitrine</strong>
@@ -4577,9 +4612,16 @@ function renderGuide(){
       a: `<strong>Vue d'ensemble</strong>
       <ul>
         <li>Coût total, valeur de vente estimée et côte BDM/BD Gest de ta collection, toujours visibles en haut.</li>
-        <li>En dessous, chaque catégorie se déplie séparément (comme ce guide) : Progression photo, Liste de souhait, Statistiques, Para-BD par catégorie, BD en vente ou vendues, Tomes manquants détectés, et la Corbeille.</li>
+        <li>En dessous, chaque catégorie se déplie séparément (comme ce guide) : Derniers ajouts, Progression photo, Liste de souhait, Statistiques, Para-BD par catégorie, BD en vente ou vendues, Tomes manquants détectés, et la Corbeille.</li>
         <li>Ouvrir une catégorie referme automatiquement celle qui était ouverte.</li>
         <li>Le bouton "Tout déplier" en haut ouvre tout d'un coup et devient "Tout replier" ; cliquer dessus referme tout et il redevient "Tout déplier". Ouvrir ou fermer une catégorie individuellement après coup fait aussi repasser le bouton sur "Tout déplier".</li>
+      </ul>
+      <strong>Derniers ajouts</strong>
+      <ul>
+        <li>Les 10 dernières BD et objets Para-BD ajoutés, tous types mélangés, du plus récent au plus ancien, avec la date et l'heure d'ajout.</li>
+        <li>Toucher une ligne ouvre directement sa fiche.</li>
+        <li>Un onzième ajout fait sortir le plus ancien de la liste, qui reste bien sûr dans ta collection — seule cette liste de raccourcis est limitée à 10.</li>
+        <li>Seuls les ajouts faits depuis cette mise à jour apparaissent ici ; modifier une BD ou un objet déjà ajouté ne change pas sa date d'ajout d'origine.</li>
       </ul>
       <strong>Progression photo</strong>
       <ul>
@@ -4749,6 +4791,11 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.2.37", date:"22/07/2026", changes:[
+    "Correction d'un bug de tri dans la vue « par couvertures » de l'Étagère : les différents formats d'une même série (ex. Classique et Intégrale) étaient mélangés lors du tri par tome, faisant apparaître un album fraîchement ajouté au mauvais endroit. Le tri respecte maintenant le format en premier, comme le fait déjà l'onglet Collection.",
+    "Nouvelle section « Derniers ajouts » dans Mon profil : les 10 BD et objets Para-BD les plus récemment ajoutés, tous types confondus, avec la date et l'heure d'ajout — un onzième ajout fait sortir le plus ancien de cette liste (il reste bien sûr dans la collection).",
+    "Correction de deux bugs latents découverts au passage : modifier une BD ou un objet Para-BD déjà ajouté effaçait silencieusement sa date d'ajout, et pour un objet Para-BD, effaçait aussi son historique de déplacement."
+  ] },
   { version:"1.2.36", date:"22/07/2026", changes:[
     "L'export « Inventaire » (PDF et Excel) ne montre plus le coût — seuls série, titre, tome, format, EO et état restent, aucun chiffre financier."
   ] },
@@ -5065,6 +5112,20 @@ function render(){
       state.tab = "collection";
       render();
       openDetail(a.aid, exIndex);
+    });
+  });
+  document.querySelectorAll("[data-recentitem]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const [type, ...rest] = el.dataset.recentitem.split(":");
+      if(type==="bd"){
+        const [aid, exIndex] = rest.map(Number);
+        state.tab = "collection";
+        render();
+        openDetail(aid, exIndex);
+      } else {
+        const id = Number(rest[0]);
+        openParaDetail(id);
+      }
     });
   });
 }
