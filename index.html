@@ -35,6 +35,8 @@
     #insuranceDoc{ display:block !important; position:static; background:#fff; color:#111; padding:0; font-family:-apple-system,Helvetica,Arial,sans-serif; }
     #insuranceDoc h1{ font-size:20px; margin:0 0 4px; }
     #insuranceDoc h2{ font-size:14px; margin:22px 0 8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+    #insuranceDoc tr.serie-group{ page-break-after:avoid; }
+    #insuranceDoc tr.serie-group td{ font-weight:700; font-size:12px; background:#eef1f6; border-bottom:1px solid #ccc; padding-top:8px; }
     #insuranceDoc .meta{ font-size:12px; color:#555; margin-bottom:16px; }
     #insuranceDoc table{ width:100%; border-collapse:collapse; font-size:11px; }
     #insuranceDoc th, #insuranceDoc td{ text-align:left; padding:4px 6px; border-bottom:1px solid #ddd; }
@@ -646,7 +648,19 @@ const LS_PARABD = "bdcollection_parabd_v1";
 function loadParabd(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_PARABD))) || []).map(normalizeParaItem); }catch(e){ return []; } }
 function saveParabd(){ try{ localStorage.setItem(LSKEY(LS_PARABD), JSON.stringify(parabdItems)); }catch(e){} }
 let parabdItems = loadParabd();    // { id, serie, categorie, objet, annee, etat, editeur, cout, commentaire }
-function nextParaId(){ return Date.now(); }
+function nextParaId(){
+  // Même logique que nextUserNum : un simple horodatage suffit presque toujours à distinguer deux
+  // objets ajoutés sur deux appareils différents, mais on se protège du cas (rare) où deux ajouts
+  // tomberaient sur la même milliseconde, ce qui ferait passer par erreur deux objets distincts
+  // pour un doublon lors de la fusion d'une sauvegarde (et en perdrait un silencieusement).
+  const used = new Set([
+    ...parabdItems.map(p=>p.id),
+    ...parabdTrash.map(p=>p.id)
+  ]);
+  let n = Date.now();
+  while(used.has(n)) n++;
+  return n;
+}
 
 const LS_PARABD_TRASH = "bdcollection_parabd_trash_v1";
 function loadParabdTrash(){ try{ return (JSON.parse(localStorage.getItem(LSKEY(LS_PARABD_TRASH))) || []).map(normalizeParaItem); }catch(e){ return []; } }
@@ -696,6 +710,7 @@ function normalizeSoldItem(s){
     serie: s.serie, titre: s.titre, tome: s.tome, format: s.format,
     eo: !!s.eo, annee: s.annee ?? null, editeur: s.editeur ?? null, etat: s.etat ?? null,
     cout: s.cout ?? null, cote: s.cote ?? null, commentaire: s.commentaire ?? "",
+    addedAt: s.addedAt ?? null,
     prixVente: s.prixVente ?? null, dateVente: s.dateVente ?? null, lieuVente: s.lieuVente ?? "",
     soldAt: s.soldAt ?? null
   };
@@ -712,6 +727,7 @@ function markAsSold(num, prixVente, dateVente, lieuVente){
     num, displayNum: ex.displayNum ?? null,
     serie: album.serie, titre: album.titre, tome: album.tome, format: album.format,
     eo: ex.eo, annee: ex.annee, editeur: ex.editeur, etat: ex.etat, cout: ex.cout, cote: ex.cote, commentaire: ex.commentaire,
+    addedAt: ex.addedAt ?? null,
     prixVente, dateVente, lieuVente: lieuVente || "",
     soldAt: new Date().toISOString()
   });
@@ -742,7 +758,7 @@ function restoreSoldItem(num){
       num, serie:snapshot.serie, titre:snapshot.titre, tome:snapshot.tome, format:snapshot.format,
       eo:snapshot.eo, annee:snapshot.annee, editeur:snapshot.editeur, etat:snapshot.etat,
       cout:snapshot.cout, vente:null, cote:snapshot.cote, commentaire:snapshot.commentaire,
-      displayNum: snapshot.displayNum || nextDisplayNum(), owned:true
+      displayNum: snapshot.displayNum || nextDisplayNum(), addedAt: snapshot.addedAt ?? null, owned:true
     });
   }
   saveAdded(userAdded);
@@ -1048,7 +1064,7 @@ function compressImage(file, maxDim=1100, quality=0.72){
       collision n'est possible avec une BD déjà ajoutée par l'utilisateur.
    ================================================================ */
 const SCHEMA_VERSION = 1;
-const APP_VERSION = "1.2.37"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
+const APP_VERSION = "1.3.0"; // format X.Y.Z : Z +1 à chaque mise à jour ; à Z=40, Y +1 et Z revient à 0 (ex. 1.2.40 → 1.3.0)
 const APP_VERSION_DATE = "22/07/2026"; // date de cette version, au format JJ/MM/AAAA — à mettre à jour à chaque changement
 const USER_ID_BASE = 100000;
 function normalizeRow(r){
@@ -1169,7 +1185,7 @@ function deleteExemplaire(num){
     bdTrash.push({
       num, serie:album.serie, titre:album.titre, tome:album.tome, format:album.format,
       eo:ex.eo, annee:ex.annee, editeur:ex.editeur, etat:ex.etat, cout:ex.cout, vente:ex.vente, cote:ex.cote, commentaire:ex.commentaire,
-      displayNum: ex.displayNum ?? null,
+      displayNum: ex.displayNum ?? null, addedAt: ex.addedAt ?? null,
       deletedAt: new Date().toISOString()
     });
     saveBdTrash();
@@ -1202,6 +1218,7 @@ function restoreDeleted(num){
       eo:snapshot.eo, annee:snapshot.annee, editeur:snapshot.editeur, etat:snapshot.etat,
       cout:snapshot.cout, vente:snapshot.vente, cote:snapshot.cote, commentaire:snapshot.commentaire,
       displayNum: snapshot.displayNum || nextDisplayNum(), // au cas où elle aurait été supprimée avant l'existence de ce numéro
+      addedAt: snapshot.addedAt ?? null,
       owned:true
     });
   }
@@ -1852,7 +1869,7 @@ function insuranceFilename(ext){
   const dd = String(now.getDate()).padStart(2,"0");
   const mm = String(now.getMonth()+1).padStart(2,"0");
   const yy = String(now.getFullYear()).slice(2);
-  return `inventaire_bd_${dd}-${mm}-${yy}_v${APP_VERSION}.${ext}`;
+  return `fiche_assurance_bd_${dd}-${mm}-${yy}_v${APP_VERSION}.${ext}`;
 }
 function csvEscape(v){
   const s = String(v ?? "");
@@ -1941,12 +1958,12 @@ function exportInventoryCSV(){
   URL.revokeObjectURL(url);
 }
 function openInventoryDocPDF(){
-  const bdRows = OWNED.flatMap(a=>a.exemplaires.map(ex=>`
+  const bdRows = buildGroupedBDRows((a,ex)=>`
     <tr>
-      <td>${a.serie}</td><td>${a.titre}</td><td>${a.tome}</td><td>${a.format}</td>
+      <td>${a.titre}</td><td>${a.tome}</td><td>${a.format}</td>
       <td>${ex.eo?"Oui":"Non"}</td><td>${ex.etat||"—"}</td>
     </tr>
-  `)).join("");
+  `, 5);
   const paraRows = parabdItems.map(p=>`
     <tr>
       <td>${p.serie}</td><td>${p.categorie}</td><td>${p.objet||"—"}</td><td>${p.etat||"—"}</td>
@@ -1958,7 +1975,7 @@ function openInventoryDocPDF(){
     <p class="meta">Document généré le ${formatDateTime(now.toISOString())}</p>
     <h2>Bandes dessinées (${OWNED.reduce((s,a)=>s+a.exemplaires.length,0)} exemplaires)</h2>
     <table>
-      <thead><tr><th>Série</th><th>Titre</th><th>Tome</th><th>Format</th><th>EO</th><th>État</th></tr></thead>
+      <thead><tr><th>Titre</th><th>Tome</th><th>Format</th><th>EO</th><th>État</th></tr></thead>
       <tbody>${bdRows}</tbody>
     </table>
     ${parabdItems.length ? `
@@ -2054,16 +2071,43 @@ function openSoldHistoryDocPDF(){
   window.print();
   setTimeout(()=>{ document.title = prevTitle; }, 1500);
 }
+// Un tableau par série (plutôt qu'un seul tableau géant) : plus robuste à l'impression sur iOS/Safari,
+// qui tronque parfois les très longs tableaux uniques lors d'un export PDF.
+// Construit les lignes d'un tableau UNIQUE, avec une ligne d'en-tête par série intercalée entre les groupes.
+// Un seul <table> (plutôt que plusieurs éléments <table> séparés) est plus robuste à la pagination
+// d'impression sur Safari/iOS, qui peut mal gérer l'enchaînement de plusieurs tableaux adjacents.
+function buildGroupedBDRows(rowBuilder, colspan){
+  return ownedBySerieSorted().map(({serie, albums})=>{
+    const groupHeader = `<tr class="serie-group"><td colspan="${colspan}">${serie}</td></tr>`;
+    const rows = albums.flatMap(a=>a.exemplaires.map(ex=>rowBuilder(a,ex))).join("");
+    return groupHeader + rows;
+  }).join("");
+}
+function ownedBySerieSorted(){
+  const seriesAlpha = [...new Set(OWNED.map(a=>a.serie))].sort((a,b)=>a.localeCompare(b,"fr"));
+  return seriesAlpha.map(s=>{
+    const albums = OWNED.filter(a=>a.serie===s).slice().sort((a,b)=>{
+      const f = formatBase(a.format).localeCompare(formatBase(b.format),"fr"); if(f) return f;
+      const na = parseInt(a.tome,10), nb = parseInt(b.tome,10);
+      const aNum = !isNaN(na), bNum = !isNaN(nb);
+      if(aNum && bNum) return na-nb;
+      if(aNum) return -1;
+      if(bNum) return 1;
+      return a.titre.localeCompare(b.titre,"fr");
+    });
+    return { serie: s, albums };
+  });
+}
 function openInsuranceDocPDF(){
   const totalCout = OWNED.reduce((s,a)=>s+albumTotalCout(a),0);
   const totalVente = OWNED.reduce((s,a)=>s+albumTotalVente(a),0);
   const totalCote = OWNED.flatMap(a=>a.exemplaires).map(e=>parseCote(e.cote)).filter(v=>v!==null).reduce((s,v)=>s+v,0);
-  const bdRows = OWNED.flatMap(a=>a.exemplaires.map(ex=>`
+  const bdRows = buildGroupedBDRows((a,ex)=>`
     <tr>
-      <td>${a.serie}</td><td>${a.titre}</td><td>${a.tome}</td><td>${a.format}</td>
+      <td>${a.titre}</td><td>${a.tome}</td><td>${a.format}</td>
       <td>${ex.eo?"Oui":"Non"}</td><td>${ex.etat||"—"}</td><td>${eur(ex.vente)}</td><td>${coteDisplay(ex.cote)}</td>
     </tr>
-  `)).join("");
+  `, 7);
   const paraCout = parabdItems.reduce((s,p)=>s+(p.cout||0),0);
   const paraRows = parabdItems.map(p=>`
     <tr>
@@ -2082,7 +2126,7 @@ function openInsuranceDocPDF(){
     </div>
     <h2>Bandes dessinées (${OWNED.reduce((s,a)=>s+a.exemplaires.length,0)} exemplaires)</h2>
     <table>
-      <thead><tr><th>Série</th><th>Titre</th><th>Tome</th><th>Format</th><th>EO</th><th>État</th><th>Valeur</th><th>Côte</th></tr></thead>
+      <thead><tr><th>Titre</th><th>Tome</th><th>Format</th><th>EO</th><th>État</th><th>Valeur</th><th>Côte</th></tr></thead>
       <tbody>${bdRows}</tbody>
     </table>
     ${parabdItems.length ? `
@@ -2461,7 +2505,7 @@ async function doExportBackup(includePhotos){
   try{
     const payload = {
       schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
-      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, sold: soldItems,
+      added: userAdded, deleted: [...deletedNums], bdTrash: bdTrash, parabd: parabdItems, parabdTrash: parabdTrash, wishlist: wishlist, baseFinances: baseFinances, sold: soldItems, forSale: forSaleItems, vitrine: VITRINE,
       photos: includePhotos ? PHOTOS : {}
     };
     const now = new Date();
@@ -2585,6 +2629,16 @@ function importBackup(file){
       const existingSoldNums = new Set(soldItems.map(s=>s.num));
       incomingSold.forEach(s=>{ if(!existingSoldNums.has(s.num)){ soldItems.push(s); existingSoldNums.add(s.num); } });
       saveSold();
+      const incomingForSale = (Array.isArray(data.forSale) ? data.forSale : []).map(normalizeForSaleItem);
+      const existingForSaleNums = new Set(forSaleItems.map(f=>f.num));
+      incomingForSale.forEach(f=>{ if(!existingForSaleNums.has(f.num)){ forSaleItems.push(f); existingForSaleNums.add(f.num); } });
+      saveForSale();
+      // La vitrine est une préférence (pas un historique) : on ne l'adopte que si celle de cet appareil est encore vide,
+      // pour ne jamais écraser une sélection déjà faite ici en cas de fusion avec un autre appareil.
+      if((!VITRINE || VITRINE.length===0) && Array.isArray(data.vitrine) && data.vitrine.length){
+        VITRINE = data.vitrine.map(normalizeVitrineEntry);
+        saveVitrine();
+      }
       const incomingPhotos = data.photos || {};
       const changedKeys = [];
       Object.keys(incomingPhotos).forEach(key=>{
@@ -4722,7 +4776,7 @@ function renderGuide(){
       </ul>
       <strong>Ce que contient (et ne contient pas) une sauvegarde</strong>
       <ul>
-        <li><strong>Contenu</strong> : tes BD ajoutées, tes objets Para-BD (et leurs corbeilles), ta liste de souhait, tes BD en vente ou vendues, toutes tes photos.</li>
+        <li><strong>Contenu</strong> : tes BD ajoutées, tes objets Para-BD (et leurs corbeilles), ta liste de souhait, tes BD en vente ou vendues, ta sélection "En vitrine", toutes tes photos.</li>
         <li><strong>Non inclus</strong> : les 150 BD de la collection de base, écrites dans le code — toujours présentes automatiquement, sur n'importe quel appareil. Leur coût et leur valeur de vente, eux, sont bien inclus.</li>
       </ul>
       <strong>Que faire si l'export échoue</strong>
@@ -4736,6 +4790,19 @@ function renderGuide(){
         <li>Le bouton "Exporter uniquement les photos (.zip)" crée une archive avec toutes tes photos, classées par série, sans le reste des données.</li>
         <li>Une pop-up indique d'abord le nombre de photos et la taille estimée.</li>
         <li>Ce fichier n'est pas fait pour être réimporté — plutôt pour consulter tes photos ailleurs, ou les joindre à une déclaration d'assurance.</li>
+      </ul>
+      <strong>Fiche assurance et export d'inventaire : quelle différence</strong>
+      <ul>
+        <li>Les deux sont accessibles depuis l'onglet Ajouter, au format PDF ou Excel, et listent ta collection série par série.</li>
+        <li><strong>Fiche assurance</strong> (fichier <em>fiche_assurance_bd_...</em>) : inclut la valeur de vente estimée et la côte BDM/BD Gest de chaque BD, plus les totaux — pensée pour une déclaration à ton assurance.</li>
+        <li><strong>Exporter un inventaire</strong> (fichier <em>inventaire_sans_valeurs_bd_...</em>) : la même liste, mais sans aucun chiffre financier (ni coût, ni valeur, ni côte) — pensée pour montrer ce que tu possèdes sans révéler ce que ça vaut.</li>
+        <li>Aucun des deux fichiers n'est fait pour être réimporté dans l'application — ce sont des documents de consultation, pas des sauvegardes.</li>
+      </ul>
+      <strong>Exporter l'historique des ventes</strong>
+      <ul>
+        <li>Dans la section "BD en vente ou vendues" de Mon profil, le bouton "Exporter l'historique des ventes" génère un document (PDF ou Excel) listant chaque BD vendue : série, titre, tome, format, date de vente, lieu/plateforme, coût, prix de vente et plus/moins-value.</li>
+        <li>Les totaux (coût cumulé, ventes cumulées, plus/moins-value totale) apparaissent en tête du document.</li>
+        <li>Comme les deux exports précédents, ce document est fait pour être consulté ou imprimé, pas réimporté dans l'application.</li>
       </ul>`
     },
     {
@@ -4791,6 +4858,24 @@ function renderGuide(){
 }
 // Historique des mises à jour — un nouvel élément à ajouter en tête à chaque version envoyée.
 const CHANGELOG = [
+  { version:"1.3.0", date:"22/07/2026", changes:[
+    "Audit complet de l'application. Correction de 5 bugs trouvés à cette occasion :",
+    "Les BD marquées « en vente » étaient absentes du fichier de sauvegarde (perdues à l'export/import) — corrigé, elles sont maintenant incluses et fusionnées correctement.",
+    "La sélection « En vitrine » était elle aussi absente de la sauvegarde — corrigé (restaurée automatiquement si la vitrine de l'appareil de destination est encore vide, jamais écrasée sinon).",
+    "Supprimer puis restaurer une BD depuis la Corbeille lui faisait perdre sa date d'ajout d'origine (elle sortait donc à tort de « Derniers ajouts ») — corrigé.",
+    "Annuler une vente pour restaurer une BD dans la collection lui faisait perdre sa date d'ajout d'origine, pour la même raison — corrigé.",
+    "Les identifiants des objets Para-BD n'avaient pas le même garde-fou anti-collision que ceux des BD, avec un (rare) risque de fusion silencieuse de deux objets distincts lors d'un import — corrigé, même protection des deux côtés désormais.",
+    "Deux corrections de documentation : ajout des explications manquantes pour « Exporter un inventaire » et « Exporter l'historique des ventes » dans le guide (recherchables, absentes jusqu'ici).",
+    "Renommage du fichier généré par la fiche assurance (fiche_assurance_bd_... au lieu de inventaire_bd_...) pour ne plus le confondre avec le nouvel export d'inventaire sans valeurs.",
+    "Cette version passe de 1.2.39 à 1.3.0 (bascule normale du numéro de version, sans rapport avec l'ampleur des correctifs)."
+  ] },
+  { version:"1.2.39", date:"22/07/2026", changes:[
+    "Correction d'un problème introduit par la version précédente : utiliser plusieurs tableaux séparés (un par série) dans la fiche assurance et l'inventaire (PDF) provoquait en réalité un mélange de l'ordre des lignes à l'impression sur iPhone (certaines BD, comme Astérix le gaulois, se retrouvaient hors de leur série, en vrac en fin de document).",
+    "Retour à un tableau unique, avec une ligne de titre par série intercalée directement dedans plutôt que des tableaux séparés — un motif bien plus robuste à la pagination d'impression. Vérifié : toutes les BD sont présentes, dans le bon ordre, chaque série regroupée correctement (Astérix le gaulois apparaît bien en tête du groupe Astérix, avant Astérix Gladiateur)."
+  ] },
+  { version:"1.2.38", date:"22/07/2026", changes:[
+    "Fiche assurance et export d'inventaire (PDF) : remplacement de l'unique tableau géant par un tableau par série, pour contourner un bug connu de Safari/iOS qui peut tronquer les très longs tableaux à l'export PDF. Aucune donnée n'est perdue, vérifié ligne par ligne (149 exemplaires toujours tous présents, répartis sur autant de petits tableaux que de séries)."
+  ] },
   { version:"1.2.37", date:"22/07/2026", changes:[
     "Correction d'un bug de tri dans la vue « par couvertures » de l'Étagère : les différents formats d'une même série (ex. Classique et Intégrale) étaient mélangés lors du tri par tome, faisant apparaître un album fraîchement ajouté au mauvais endroit. Le tri respecte maintenant le format en premier, comme le fait déjà l'onglet Collection.",
     "Nouvelle section « Derniers ajouts » dans Mon profil : les 10 BD et objets Para-BD les plus récemment ajoutés, tous types confondus, avec la date et l'heure d'ajout — un onzième ajout fait sortir le plus ancien de cette liste (il reste bien sûr dans la collection).",
